@@ -3,7 +3,7 @@ data:
   metadata:
     description: ""
     id: nK3T4pd-pWfSZKmdM_jHz
-    name: MongoDB Plugin Examples/MongoDb Collection Search and Vectorize (Copy)
+    name: MongoDB Plugin Examples/MongoDb Collection Search and Vectorized
   nodes:
     '[0n4K1frPVUsxQG7zee2Wo]:boolean "Bool"':
       data:
@@ -11,13 +11,6 @@ data:
       outgoingConnections:
         - value->"If/Else" jqGDB9BxgsNjubrnmnsd9/true
       visualData: 934.9440978042041/155.51828691633764/160/353
-    '[4QidKkOLZSVDhwxoMIWXk]:mongoCollectionSearch "Search a MongoDB collection and return documents"':
-      data:
-        collection: reviews
-        database: sample_restaurant_reviews
-      outgoingConnections:
-        - documents->"Array" BOhtuTD1ctASZcX8jtGEN/input1
-      visualData: -1071.395911114637/-108.16960267301734/516.6245481805659/359
     '[4fUI1CXtByNgh0j0dZhh8]:mongoDBStore "Store Vector in MongoDB"':
       data:
         collection: reviews
@@ -80,3 +73,10 @@ data:
       outgoingConnections:
         - output->"Loop Controller" efMGmc-F3fWMfYNq1ic0q/continue
       visualData: 1231.9440978042041/145.51828691633764/205/353
+    '[nSfNjJ1Wh_l7XzpEWtkQC]:mongoDBCollectionSearch "Search a MongoDB collection and return documents"':
+      data:
+        collection: reviews
+        database: sample_restaurant_reviews
+      outgoingConnections:
+        - documents->"Array" BOhtuTD1ctASZcX8jtGEN/input1
+      visualData: -886.6598273947544/-121.47129979129173/230/360
