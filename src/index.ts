@@ -4,14 +4,16 @@
 import { type RivetPlugin, type RivetPluginInitializer } from "@ironclad/rivet-core";
 
 import mongoDBStoreNode from "./nodes/MongoDBStore";
-import mongoVectorKNNNode from "./nodes/MongoVectorKNN";
+import mongoDBVectorKNNNode from "./nodes/MongoDBVectorKNN";
+import mongoDBCollectionSearchNode from "./nodes/MongoDBCollectionSearch";
 
 // A Rivet plugin must default export a plugin initializer function. This takes in the Rivet library as its
 // only parameter. This function must return a valid RivetPlugin object.
 const initializer: RivetPluginInitializer = (rivet) => {
   // Initialize any nodes in here in the same way, by passing them the Rivet library.
-  const mongoStore = mongoDBStoreNode(rivet);
-  const mongoVectorSearch = mongoVectorKNNNode(rivet);
+  const mongoDBStore = mongoDBStoreNode(rivet);
+  const mongoDBVectorSearch = mongoDBVectorKNNNode(rivet);
+  const mongoDBCollectionSearch = mongoDBCollectionSearchNode(rivet);
 
   // The plugin object is the definition for your plugin.
   const plugin: RivetPlugin = {
@@ -43,8 +45,9 @@ const initializer: RivetPluginInitializer = (rivet) => {
     // Register any additional nodes your plugin adds here. This is passed a `register`
     // function, which you can use to register your nodes.
     register: (register) => {
-      register(mongoStore);
-      register(mongoVectorSearch);
+      register(mongoDBStore);
+      register(mongoDBVectorSearch);
+      register(mongoDBCollectionSearch);
     },
   };
 

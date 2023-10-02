@@ -1,0 +1,40 @@
+version: 4
+data:
+  metadata:
+    description: ""
+    id: 44rJKSOirQrdOlVQFtlz4
+    name: MongoDB Plugin Examples/Store Vector in MongoDb
+  nodes:
+    '[Fdn1oIVbZjeCKNZa6k6Dm]:mongoDBStore "Store Vector in MongoDB"':
+      data:
+        collection: embedded_movies
+        collectionId: ""
+        database: sample_mflix
+        integration: mongoDB
+        path: plot_embedding
+        useCollectionInput: false
+        useDatabaseInput: false
+      visualData: 1254.6258936282602/353/301/51
+    '[JFliSjz8Y8lCofaWfmAKB]:getEmbedding "Get Embedding"':
+      data:
+        integration: openai
+        useIntegrationInput: false
+      outgoingConnections:
+        - embedding->"Store Vector in MongoDB" Fdn1oIVbZjeCKNZa6k6Dm/vector
+      visualData: 947/298/250/45
+    '[oggjQgz6xaB2B2c6MecIE]:text "Plot"':
+      data:
+        text: A dimension-traveling wizard gets stuck in the 21st century
+      outgoingConnections:
+        - output->"Get Embedding" JFliSjz8Y8lCofaWfmAKB/input
+        - output->"Object" wfc9L_2dk-Y2GiuVDyXoa/plot
+      visualData: 420.8067629580727/374.5200647958614/478.19735961263245/48
+    '[wfc9L_2dk-Y2GiuVDyXoa]:object "Object"':
+      data:
+        jsonTemplate: |-
+          {
+            "plot" : {{plot}}
+          }
+      outgoingConnections:
+        - output->"Store Vector in MongoDB" Fdn1oIVbZjeCKNZa6k6Dm/doc
+      visualData: 947.6926889842637/467.3227051832291/230/50

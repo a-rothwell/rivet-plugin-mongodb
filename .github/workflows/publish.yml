@@ -1,0 +1,24 @@
+name: publish
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: build and publish
+        run: |
+          yarn build
+          yarn version --new-version ${{ github.ref_name }} --no-git-tag-version
+          yarn publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET }}

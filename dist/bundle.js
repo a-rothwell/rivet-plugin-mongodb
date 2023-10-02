@@ -6,7 +6,8 @@ function MongoDBStore_default(rivet) {
         id: rivet.newId(),
         data: {
           database: "",
-          collection: ""
+          collection: "",
+          path: ""
         },
         title: "Store Vector in MongoDB",
         type: "mongoDBStore",
@@ -48,6 +49,14 @@ function MongoDBStore_default(rivet) {
           required: true
         });
       }
+      if (data.usePathInput) {
+        inputs.push({
+          id: "path",
+          title: "Path",
+          dataType: "string",
+          required: true
+        });
+      }
       return inputs;
     },
     getOutputDefinitions(_data, _connections, _nodes, _project) {
@@ -81,6 +90,12 @@ function MongoDBStore_default(rivet) {
           label: "Collection",
           dataKey: "collection",
           useInputToggleDataKey: "useCollectionInput"
+        },
+        {
+          type: "string",
+          label: "Path",
+          dataKey: "path",
+          useInputToggleDataKey: "usePathInput"
         }
       ];
     },
@@ -88,6 +103,7 @@ function MongoDBStore_default(rivet) {
       return rivet.dedent`
       ${data.useDatabaseInput ? "(Database using input)" : "Database: " + data.database}
       ${data.useCollectionInput ? "(Collection using input)" : "Collection: " + data.collection}
+      ${data.usePathInput ? "(Path using input)" : "Path: " + data.path}
       `;
     },
     async process(data, inputData, context) {
@@ -99,16 +115,24 @@ function MongoDBStore_default(rivet) {
       if (inputData["vector"]?.type !== "vector") {
         throw new Error(`Expected vector input, got ${inputData["vector"]?.type}`);
       }
+      if (data.usePathInput && inputData["path"]?.type !== "string") {
+        throw new Error(`Expected string input, got ${inputData["path"]?.type}`);
+      }
       const client = new MongoClient(uri);
       try {
         await client.connect();
         const doc = inputData["doc"]?.value || {};
+        const path = inputData["path"]?.value || data.path;
         const database = data.useDatabaseInput ? inputData["database"]?.value : data.database;
         const collection = data.useCollectionInput ? inputData["collection"]?.value : data.collection;
-        await client.db(database).collection(collection).insertOne({
-          ...doc,
-          plot_embedding: inputData["vector"]?.value
-        });
+        console.log(`Inserting document into ${database}.${collection} at path ${path}`);
+        console.log(doc);
+        console.log(inputData["vector"]?.value);
+        await client.db(database).collection(collection).updateOne(
+          { ...doc },
+          { $set: { [path]: inputData["vector"]?.value } },
+          { upsert: true }
+        );
       } catch (err) {
         throw new Error(`Error inserting document: ${err}`);
       } finally {
@@ -138,7 +162,8 @@ function MongoVectorKNN_default(rivet) {
         data: {
           k: 10,
           database: "",
-          collection: ""
+          collection: "",
+          path: ""
         },
         title: "Search MongoDB for closest vectors with KNN",
         type: "mongoDBVectorKNN",
@@ -182,6 +207,14 @@ function MongoVectorKNN_default(rivet) {
           required: true
         });
       }
+      if (data.usePathInput) {
+        inputs.push({
+          id: "path",
+          title: "Path",
+          dataType: "string",
+          required: true
+        });
+      }
       return inputs;
     },
     getOutputDefinitions(_data, _connections, _nodes, _project) {
@@ -198,7 +231,7 @@ function MongoVectorKNN_default(rivet) {
       return {
         contextMenuTitle: "MongoDB Vector KNN",
         group: "MongoDB",
-        infoBoxBody: "This is an example of running a mongo db vector search with KNN.",
+        infoBoxBody: "This a node that takes a mongo db vector searches for similar vectors with KNN.",
         infoBoxTitle: "Run Mongo DB vector search with KNN"
       };
     },
@@ -221,6 +254,12 @@ function MongoVectorKNN_default(rivet) {
           label: "K",
           dataKey: "k",
           useInputToggleDataKey: "useKInput"
+        },
+        {
+          type: "string",
+          label: "path",
+          dataKey: "path",
+          useInputToggleDataKey: "usePathInput"
         }
       ];
     },
@@ -228,6 +267,8 @@ function MongoVectorKNN_default(rivet) {
       return rivet.dedent`
       ${data.useDatabaseInput ? "(Database using input)" : "Database: " + data.database}
       ${data.useCollectionInput ? "(Collection using input)" : "Collection: " + data.collection}
+      ${data.useKInput ? "(K using input)" : "K: " + data.k}
+      ${data.usePathInput ? "(Path using input)" : "Path: " + data.path}
       `;
     },
     async process(data, inputData, context) {
@@ -271,7 +312,120 @@ function MongoVectorKNN_default(rivet) {
   };
   const nodeDefinition = rivet.pluginNodeDefinition(
     nodeImpl,
-    "Store Vector in MongoDB"
+    "Run Mongo DB vector search with KNN"
+  );
+  return nodeDefinition;
+}
+
+// src/nodes/MongoCollectionSearch.ts
+function MongoCollectionSearch_default(rivet) {
+  const nodeImpl = {
+    create() {
+      const node = {
+        id: rivet.newId(),
+        data: {
+          database: "",
+          collection: ""
+        },
+        title: "Search a MongoDB collection and return documents",
+        type: "mongoCollectionSearch",
+        visualData: {
+          x: 0,
+          y: 0,
+          width: 200
+        }
+      };
+      return node;
+    },
+    getInputDefinitions(data, _connections, _nodes, _project) {
+      const inputs = [];
+      if (data.useDatabaseInput) {
+        inputs.push({
+          id: "database",
+          title: "Database",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useCollectionInput) {
+        inputs.push({
+          id: "collection",
+          title: "Collection",
+          dataType: "string",
+          required: true
+        });
+      }
+      return inputs;
+    },
+    getOutputDefinitions(_data, _connections, _nodes, _project) {
+      const outputs = [
+        {
+          dataType: "object",
+          id: "documents",
+          title: "Documents"
+        }
+      ];
+      return outputs;
+    },
+    getUIData() {
+      return {
+        contextMenuTitle: "MongoDB Collection Search",
+        group: "MongoDB",
+        infoBoxBody: "This is a node that searches a MongoDB collection and returns documents.",
+        infoBoxTitle: "Search a MongoDB collection and return documents"
+      };
+    },
+    getEditors(_data) {
+      return [
+        {
+          type: "string",
+          label: "Database",
+          dataKey: "database",
+          useInputToggleDataKey: "useDatabaseInput"
+        },
+        {
+          type: "string",
+          label: "Collection",
+          dataKey: "collection",
+          useInputToggleDataKey: "useCollectionInput"
+        }
+      ];
+    },
+    getBody(data) {
+      return rivet.dedent`
+      ${data.useDatabaseInput ? "(Database using input)" : "Database: " + data.database}
+      ${data.useCollectionInput ? "(Collection using input)" : "Collection: " + data.collection}
+      `;
+    },
+    async process(data, inputData, context) {
+      const { MongoClient } = await import("../dist/nodeEntry.cjs");
+      const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
+      if (!uri) {
+        throw new Error("No MongoDB connection string provided");
+      }
+      const client = new MongoClient(uri);
+      let results;
+      try {
+        await client.connect();
+        const database = data.useDatabaseInput ? inputData["database"]?.value : data.database;
+        const collection = data.useCollectionInput ? inputData["collection"]?.value : data.collection;
+        results = await client.db(database).collection(collection).find().toArray();
+      } catch (err) {
+        throw new Error(`Error vector searching document: ${err}`);
+      } finally {
+        await client.close();
+      }
+      return {
+        ["documents"]: {
+          type: "object",
+          value: results
+        }
+      };
+    }
+  };
+  const nodeDefinition = rivet.pluginNodeDefinition(
+    nodeImpl,
+    "Search a MongoDB collection and return documents"
   );
   return nodeDefinition;
 }
@@ -280,6 +434,7 @@ function MongoVectorKNN_default(rivet) {
 var initializer = (rivet) => {
   const mongoStore = MongoDBStore_default(rivet);
   const mongoVectorSearch = MongoVectorKNN_default(rivet);
+  const mongoCollectionSearch = MongoCollectionSearch_default(rivet);
   const plugin = {
     // The ID of your plugin should be unique across all plugins.
     id: "rivetPluginMongodb",
@@ -307,6 +462,7 @@ var initializer = (rivet) => {
     register: (register) => {
       register(mongoStore);
       register(mongoVectorSearch);
+      register(mongoCollectionSearch);
     }
   };
   return plugin;

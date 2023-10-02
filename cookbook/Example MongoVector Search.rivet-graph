@@ -1,0 +1,47 @@
+version: 4
+data:
+  metadata:
+    description: ""
+    id: cmJouCYVdfIRLOt60DAVC
+    name: MongoDB Plugin Examples/MongoVector Search
+  nodes:
+    '[3xyp-KgihQ1mu65xC-A0n]:text "Text"':
+      data:
+        text: A security guard is in charge of protecting a museum.
+      outgoingConnections:
+        - output->"Get Embedding" e3ZwpDDIT-6wyabS6tJsJ/input
+      visualData: 146.47479805331952/33.353317536925886/330/30
+    '[T9jsDtha7x-08O-zGYxSQ]:extractObjectPath "Extract Object Path"':
+      data:
+        path: $..title
+        usePathInput: false
+      outgoingConnections:
+        - all_matches->"Text" bnVr1teIdiAaZwzC1TSPj/input
+      visualData: 2174.737455351926/30.06488121869288/280/45
+    '[bnVr1teIdiAaZwzC1TSPj]:text "Text"':
+      data:
+        text: "{{input}}"
+      visualData: 2484.86948871647/49.721407155774315/330/46
+    '[e3ZwpDDIT-6wyabS6tJsJ]:getEmbedding "Get Embedding"':
+      data:
+        integration: openai
+        useIntegrationInput: false
+      outgoingConnections:
+        - embedding->"Search MongoDB for closest vectors with KNN"
+          xnQKznQpDEybgYHFT8ePn/vector
+      visualData: 494.4579762254171/35.754224198710986/230/35
+    '[ipxnGmuZ9tpw0HGnJkVOF]:object "Object"':
+      data:
+        jsonTemplate: "{{input}}"
+      outgoingConnections:
+        - output->"Extract Object Path" T9jsDtha7x-08O-zGYxSQ/object
+      visualData: 985.3240607507175/34.361528495212454/1166.5733508354/40
+    '[xnQKznQpDEybgYHFT8ePn]:mongoDBVectorKNN "Search MongoDB for closest vectors with KNN"':
+      data:
+        collection: embedded_movies
+        database: sample_mflix
+        k: 5
+        path: plot_embedding
+      outgoingConnections:
+        - documents->"Object" ipxnGmuZ9tpw0HGnJkVOF/input
+      visualData: 742.7371242192515/-51.638408915757466/230/44

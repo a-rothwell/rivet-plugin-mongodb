@@ -16,34 +16,30 @@ import type {
   Rivet,
 } from "@ironclad/rivet-core";
 
-export type MongoVectorKNN = ChartNode<
-  "mongoDBVectorKNN",
-  MongoVectorKNNData
+export type MongoDBCollectionSearch = ChartNode<
+  "mongoDBCollectionSearch",
+  MongoDBCollectionSearchData
 >;
 
-export type MongoVectorKNNData = {
+export type MongoDBCollectionSearchData = {
   database: string;
   useDatabaseInput?: boolean;
 
   collection: string;
   useCollectionInput?: boolean;
-
-  k: number;
-  useKInput?: boolean;
 };
 
 export default function (rivet: typeof Rivet) {
-  const nodeImpl: PluginNodeImpl<MongoVectorKNN> = {
-    create(): MongoVectorKNN {
-      const node: MongoVectorKNN = {
+  const nodeImpl: PluginNodeImpl<MongoDBCollectionSearch> = {
+    create(): MongoDBCollectionSearch {
+      const node: MongoDBCollectionSearch = {
         id: rivet.newId<NodeId>(),
         data: {
-          k: 10,
           database: '',
           collection: '',
         },
-        title: "Search MongoDB for closest vectors with KNN",
-        type: "mongoDBVectorKNN",
+        title: "Search a MongoDB collection and return documents",
+        type: "mongoDBCollectionSearch",
         visualData: {
           x: 0,
           y: 0,
@@ -53,19 +49,12 @@ export default function (rivet: typeof Rivet) {
       return node;
     },
     getInputDefinitions(
-      data: MongoVectorKNNData,
+      data: MongoDBCollectionSearchData,
       _connections: NodeConnection[],
       _nodes: Record<NodeId, ChartNode>,
       _project: Project
     ): NodeInputDefinition[] {
       const inputs: NodeInputDefinition[] = [];
-
-      inputs.push({
-        id: 'vector' as PortId,
-        title: 'Vector',
-        dataType: 'vector',
-        required: true,
-      });
 
       if (data.useDatabaseInput) {
         inputs.push({
@@ -85,20 +74,11 @@ export default function (rivet: typeof Rivet) {
         });
       }
 
-      if (data.useKInput) {
-        inputs.push({
-          id: 'k' as PortId,
-          title: 'K',
-          dataType: 'number',
-          required: true,
-        });
-      }
-
       return inputs;
     },
 
     getOutputDefinitions(
-      _data: MongoVectorKNNData,
+      _data: MongoDBCollectionSearchData,
       _connections: NodeConnection[],
       _nodes: Record<NodeId, ChartNode>,
       _project: Project
@@ -116,17 +96,17 @@ export default function (rivet: typeof Rivet) {
 
     getUIData(): NodeUIData {
       return {
-        contextMenuTitle: "MongoDB Vector KNN",
+        contextMenuTitle: "MongoDB Collection Search",
         group: "MongoDB",
         infoBoxBody:
-          "This is an example of running a mongo db vector search with KNN.",
-        infoBoxTitle: "Run Mongo DB vector search with KNN",
+          "This is a node that searches a MongoDB collection and returns documents.",
+        infoBoxTitle: "Search a MongoDB collection and return documents",
       };
     },
 
     getEditors(
-      _data: MongoVectorKNNData
-    ): EditorDefinition<MongoVectorKNN>[] {
+      _data: MongoDBCollectionSearchData
+    ): EditorDefinition<MongoDBCollectionSearch>[] {
       return [
         {
           type: 'string',
@@ -138,18 +118,12 @@ export default function (rivet: typeof Rivet) {
           label: 'Collection',
           dataKey: 'collection',
           useInputToggleDataKey: 'useCollectionInput',
-        },
-        {
-          type: 'number',
-          label: 'K',
-          dataKey: 'k',
-          useInputToggleDataKey: 'useKInput',
-        },
+        }
       ];
     },
 
     getBody(
-      data: MongoVectorKNNData
+      data: MongoDBCollectionSearchData
     ): string | NodeBodySpec | NodeBodySpec[] | undefined {
       return rivet.dedent`
       ${data.useDatabaseInput ? '(Database using input)' : 'Database: ' + data.database}
@@ -158,7 +132,7 @@ export default function (rivet: typeof Rivet) {
     },
 
     async process(
-      data: MongoVectorKNNData,
+      data: MongoDBCollectionSearchData,
       inputData: Inputs,
       context: InternalProcessContext
     ): Promise<Outputs> {
@@ -169,10 +143,6 @@ export default function (rivet: typeof Rivet) {
         throw new Error("No MongoDB connection string provided");
       }
 
-      if (inputData['vector' as PortId]?.type !== 'vector') {
-        throw new Error(`Expected vector input, got ${inputData['vector' as PortId]?.type}`);
-      }
-
       const client = new MongoClient(uri);
       let results: Record<string, unknown>;
       try {
@@ -181,15 +151,7 @@ export default function (rivet: typeof Rivet) {
         const database = data.useDatabaseInput ? inputData['database' as PortId]?.value as string : data.database as string;
         const collection = data.useCollectionInput ? inputData['collection' as PortId]?.value as string : data.collection as string;
 
-        results = await client.db(database).collection(collection).aggregate([{
-          "$search": {
-            "knnBeta" : {
-              "vector": inputData['vector' as PortId]?.value,
-              "k": data.useKInput ? inputData['k' as PortId]?.value : data.k,
-              "path": "plot_embedding"
-            }
-          }}]
-        ).toArray() as any;
+        results = await client.db(database).collection(collection).find().toArray() as any;
       } catch (err) {
         throw new Error(`Error vector searching document: ${err}`);
       } finally {
@@ -207,7 +169,7 @@ export default function (rivet: typeof Rivet) {
 
   const nodeDefinition = rivet.pluginNodeDefinition(
     nodeImpl,
-    "Store Vector in MongoDB"
+    "Search a MongoDB collection and return documents"
   );
 
   return nodeDefinition;

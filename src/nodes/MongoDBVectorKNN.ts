@@ -16,34 +16,38 @@ import type {
   Rivet,
 } from "@ironclad/rivet-core";
 
-export type MongoDBStoreNode = ChartNode<
-  "mongoDBStore",
-  MongoDBStoreNodeData
+export type MongoDBVectorKNN = ChartNode<
+  "mongoDBVectorKNN",
+  MongoDBVectorKNNData
 >;
 
-export type MongoDBStoreNodeData = {
+export type MongoDBVectorKNNData = {
   database: string;
   useDatabaseInput?: boolean;
 
   collection: string;
   useCollectionInput?: boolean;
 
+  k: number;
+  useKInput?: boolean;
+
   path: string;
   usePathInput?: boolean;
 };
 
 export default function (rivet: typeof Rivet) {
-  const nodeImpl: PluginNodeImpl<MongoDBStoreNode> = {
-    create(): MongoDBStoreNode {
-      const node: MongoDBStoreNode = {
+  const nodeImpl: PluginNodeImpl<MongoDBVectorKNN> = {
+    create(): MongoDBVectorKNN {
+      const node: MongoDBVectorKNN = {
         id: rivet.newId<NodeId>(),
         data: {
+          k: 10,
           database: '',
           collection: '',
           path: '',
         },
-        title: "Store Vector in MongoDB",
-        type: "mongoDBStore",
+        title: "Search MongoDB for closest vectors with KNN",
+        type: "mongoDBVectorKNN",
         visualData: {
           x: 0,
           y: 0,
@@ -52,9 +56,8 @@ export default function (rivet: typeof Rivet) {
       };
       return node;
     },
-
     getInputDefinitions(
-      data: MongoDBStoreNodeData,
+      data: MongoDBVectorKNNData,
       _connections: NodeConnection[],
       _nodes: Record<NodeId, ChartNode>,
       _project: Project
@@ -66,13 +69,6 @@ export default function (rivet: typeof Rivet) {
         title: 'Vector',
         dataType: 'vector',
         required: true,
-      });
-
-      inputs.push({
-        id: 'doc' as PortId,
-        title: 'Document Data',
-        dataType: 'any',
-        required: false,
       });
 
       if (data.useDatabaseInput) {
@@ -93,7 +89,16 @@ export default function (rivet: typeof Rivet) {
         });
       }
 
-      if(data.usePathInput) {
+      if (data.useKInput) {
+        inputs.push({
+          id: 'k' as PortId,
+          title: 'K',
+          dataType: 'number',
+          required: true,
+        });
+      }
+
+      if (data.usePathInput) {
         inputs.push({
           id: 'path' as PortId,
           title: 'Path',
@@ -106,16 +111,16 @@ export default function (rivet: typeof Rivet) {
     },
 
     getOutputDefinitions(
-      _data: MongoDBStoreNodeData,
+      _data: MongoDBVectorKNNData,
       _connections: NodeConnection[],
       _nodes: Record<NodeId, ChartNode>,
       _project: Project
     ): NodeOutputDefinition[] {
       const outputs: NodeOutputDefinition[] = [
         {
-          id: 'complete' as PortId,
-          title: 'Complete',
-          dataType: 'boolean',
+          dataType: 'object',
+          id: 'documents' as PortId,
+          title: 'Documents',
         },
       ];
   
@@ -124,17 +129,17 @@ export default function (rivet: typeof Rivet) {
 
     getUIData(): NodeUIData {
       return {
-        contextMenuTitle: "MongoDB Vector Store",
+        contextMenuTitle: "MongoDB Vector KNN",
         group: "MongoDB",
         infoBoxBody:
-          "This is a node that stores a vector in MongoDB.",
-        infoBoxTitle: "MongoDB Vector Store",
+          "This a node that takes a mongo db vector searches for similar vectors with KNN.",
+        infoBoxTitle: "Run Mongo DB vector search with KNN",
       };
     },
 
     getEditors(
-      _data: MongoDBStoreNodeData
-    ): EditorDefinition<MongoDBStoreNode>[] {
+      _data: MongoDBVectorKNNData
+    ): EditorDefinition<MongoDBVectorKNN>[] {
       return [
         {
           type: 'string',
@@ -148,8 +153,14 @@ export default function (rivet: typeof Rivet) {
           useInputToggleDataKey: 'useCollectionInput',
         },
         {
+          type: 'number',
+          label: 'K',
+          dataKey: 'k',
+          useInputToggleDataKey: 'useKInput',
+        },
+        {
           type: 'string',
-          label: 'Path',
+          label: 'path',
           dataKey: 'path',
           useInputToggleDataKey: 'usePathInput',
         }
@@ -157,21 +168,22 @@ export default function (rivet: typeof Rivet) {
     },
 
     getBody(
-      data: MongoDBStoreNodeData
+      data: MongoDBVectorKNNData
     ): string | NodeBodySpec | NodeBodySpec[] | undefined {
       return rivet.dedent`
       ${data.useDatabaseInput ? '(Database using input)' : 'Database: ' + data.database}
       ${data.useCollectionInput ? '(Collection using input)' : 'Collection: ' + data.collection}
+      ${data.useKInput ? '(K using input)' : 'K: ' + data.k}
       ${data.usePathInput ? '(Path using input)' : 'Path: ' + data.path}
       `;
     },
 
     async process(
-      data: MongoDBStoreNodeData,
+      data: MongoDBVectorKNNData,
       inputData: Inputs,
       context: InternalProcessContext
     ): Promise<Outputs> {
-      const { MongoClient, ServerApiVersion } = await import("../nodeEntry");
+      const { MongoClient } = await import("../nodeEntry");
       const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString as string | undefined;
 
       if (!uri) {
@@ -182,47 +194,43 @@ export default function (rivet: typeof Rivet) {
         throw new Error(`Expected vector input, got ${inputData['vector' as PortId]?.type}`);
       }
 
-      if(data.usePathInput && inputData['path' as PortId]?.type !== 'string') {
-        throw new Error(`Expected string input, got ${inputData['path' as PortId]?.type}`);
-      }
-
       const client = new MongoClient(uri);
-
+      let results: Record<string, unknown>;
       try {
         await client.connect();
-        const doc = inputData['doc' as PortId]?.value || {};
-        const path = inputData['path' as PortId]?.value as string || data.path as string;
 
         const database = data.useDatabaseInput ? inputData['database' as PortId]?.value as string : data.database as string;
         const collection = data.useCollectionInput ? inputData['collection' as PortId]?.value as string : data.collection as string;
+        const path = data.usePathInput ? inputData['path' as PortId]?.value as string : data.path as string;
 
-        console.log(`Inserting document into ${database}.${collection} at path ${path}`);
-        console.log(doc);
-        console.log(inputData['vector' as PortId]?.value);
-
-        await client.db(database).collection(collection).updateOne(
-          {...doc},
-          { $set: { [path] : inputData['vector' as PortId]?.value}},
-          {upsert: true,}
-        )
-
+        results = await client.db(database).collection(collection).aggregate([{
+          "$search": {
+            "knnBeta" : {
+              "vector": inputData['vector' as PortId]?.value,
+              "k": data.useKInput ? inputData['k' as PortId]?.value : data.k,
+              "path": path
+            }
+          }}]
+        ).toArray() as any;
       } catch (err) {
-        throw new Error(`Error inserting document: ${err}`);
+        throw new Error(`Error vector searching document: ${err}`);
       } finally {
         await client.close();
       }
 
       return {
-        ['complete' as PortId]: {
-          type: 'boolean',
-          value: true,
+        ['documents' as PortId]: {
+          type: 'object',
+          value: results,
         },
       };
     },
   };
+
   const nodeDefinition = rivet.pluginNodeDefinition(
     nodeImpl,
-    "Store Vector in MongoDB"
+    "Run Mongo DB vector search with KNN"
   );
+
   return nodeDefinition;
 }
