@@ -15,7 +15,7 @@ This plugin provides 3 new nodes for interacting with MongoDB for Rivet.
 
 Navigate to the plugins section of the project tab and click the + button
 
-Search and install the `rivet-mongodb plugin`
+Search and install the `rivet-mongodb-plugin`
 
 Make sure to add your database connection string in settings
 
