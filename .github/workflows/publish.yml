@@ -17,6 +17,7 @@ jobs:
 
       - name: build and publish
         run: |
+          yarn install
           yarn build
           yarn version --new-version ${{ github.ref_name }} --no-git-tag-version
           yarn publish

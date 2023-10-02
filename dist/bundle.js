@@ -153,8 +153,8 @@ function MongoDBStore_default(rivet) {
   return nodeDefinition;
 }
 
-// src/nodes/MongoVectorKNN.ts
-function MongoVectorKNN_default(rivet) {
+// src/nodes/MongoDBVectorKNN.ts
+function MongoDBVectorKNN_default(rivet) {
   const nodeImpl = {
     create() {
       const node = {
@@ -286,13 +286,14 @@ function MongoVectorKNN_default(rivet) {
         await client.connect();
         const database = data.useDatabaseInput ? inputData["database"]?.value : data.database;
         const collection = data.useCollectionInput ? inputData["collection"]?.value : data.collection;
+        const path = data.usePathInput ? inputData["path"]?.value : data.path;
         results = await client.db(database).collection(collection).aggregate(
           [{
             "$search": {
               "knnBeta": {
                 "vector": inputData["vector"]?.value,
                 "k": data.useKInput ? inputData["k"]?.value : data.k,
-                "path": "plot_embedding"
+                "path": path
               }
             }
           }]
@@ -317,8 +318,8 @@ function MongoVectorKNN_default(rivet) {
   return nodeDefinition;
 }
 
-// src/nodes/MongoCollectionSearch.ts
-function MongoCollectionSearch_default(rivet) {
+// src/nodes/MongoDBCollectionSearch.ts
+function MongoDBCollectionSearch_default(rivet) {
   const nodeImpl = {
     create() {
       const node = {
@@ -328,7 +329,7 @@ function MongoCollectionSearch_default(rivet) {
           collection: ""
         },
         title: "Search a MongoDB collection and return documents",
-        type: "mongoCollectionSearch",
+        type: "mongoDBCollectionSearch",
         visualData: {
           x: 0,
           y: 0,
@@ -432,9 +433,9 @@ function MongoCollectionSearch_default(rivet) {
 
 // src/index.ts
 var initializer = (rivet) => {
-  const mongoStore = MongoDBStore_default(rivet);
-  const mongoVectorSearch = MongoVectorKNN_default(rivet);
-  const mongoCollectionSearch = MongoCollectionSearch_default(rivet);
+  const mongoDBStore = MongoDBStore_default(rivet);
+  const mongoDBVectorSearch = MongoDBVectorKNN_default(rivet);
+  const mongoDBCollectionSearch = MongoDBCollectionSearch_default(rivet);
   const plugin = {
     // The ID of your plugin should be unique across all plugins.
     id: "rivetPluginMongodb",
@@ -460,9 +461,9 @@ var initializer = (rivet) => {
     // Register any additional nodes your plugin adds here. This is passed a `register`
     // function, which you can use to register your nodes.
     register: (register) => {
-      register(mongoStore);
-      register(mongoVectorSearch);
-      register(mongoCollectionSearch);
+      register(mongoDBStore);
+      register(mongoDBVectorSearch);
+      register(mongoDBCollectionSearch);
     }
   };
   return plugin;
