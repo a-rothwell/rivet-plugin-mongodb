@@ -204,11 +204,6 @@ export default function (rivet: typeof Rivet) {
         const collection = data.useCollectionInput ? inputData['collection' as PortId]?.value as string : data.collection as string;
         const path = data.usePathInput ? inputData['path' as PortId]?.value as string : data.path as string;
 
-        const indexes = client.db(database).collection(collection).listIndexes().toArray() as any;
-        if(indexes.length === 0) {
-          throw new Error(`No search index found for collection ${collection}. A search index must be created before using this node. See the readme for more information.`);
-        }
-        
         results = await client.db(database).collection(collection).aggregate([{
           "$search": {
             "knnBeta" : {
