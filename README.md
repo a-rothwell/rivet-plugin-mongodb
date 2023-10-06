@@ -19,6 +19,8 @@ Search and install the `rivet-mongodb-plugin`
 
 Make sure to add your database connection string in settings
 
+For the MongoDBVectorKNN node to work you must create a index. Documentation on how to create an index can be found here: https://www.mongodb.com/docs/atlas/atlas-search/field-types/knn-vector/#std-label-bson-data-types-knn-vector
+
 # Plugin Cookbook
 
 Check out the cookbook for examples of how to use the nodes in this plugin.
