@@ -12,5 +12,7 @@
 # !.yarn/cache
 .pnp.*
 node_modules
+.install_complete_version
+pnpm-lock.yaml
 
 # src/**/*.js
