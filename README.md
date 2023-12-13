@@ -25,6 +25,10 @@ For the MongoDBVectorKNN node to work you must create a index. Documentation on 
 
 Check out the cookbook for examples of how to use the nodes in this plugin.
 
+# Tutorials
+
+https://www.mongodb.com/developer/products/atlas/atlas-rivet-graph-ai-integ/
+
 # Roadmap
 
 - [ ] Add search filter support for the MongoDBCollectionSearch node
