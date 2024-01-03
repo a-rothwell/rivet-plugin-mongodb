@@ -6,6 +6,7 @@ import { type RivetPlugin, type RivetPluginInitializer } from "@ironclad/rivet-c
 import mongoDBStoreNode from "./nodes/MongoDBStore";
 import mongoDBVectorKNNNode from "./nodes/MongoDBVectorKNN";
 import mongoDBCollectionSearchNode from "./nodes/MongoDBCollectionSearch";
+import mongoDBAggregationNode from "./nodes/MongoDBAggregation";
 
 // A Rivet plugin must default export a plugin initializer function. This takes in the Rivet library as its
 // only parameter. This function must return a valid RivetPlugin object.
@@ -14,6 +15,7 @@ const initializer: RivetPluginInitializer = (rivet) => {
   const mongoDBStore = mongoDBStoreNode(rivet);
   const mongoDBVectorSearch = mongoDBVectorKNNNode(rivet);
   const mongoDBCollectionSearch = mongoDBCollectionSearchNode(rivet);
+  const mongoDBAggregation = mongoDBAggregationNode(rivet);
 
   // The plugin object is the definition for your plugin.
   const plugin: RivetPlugin = {
@@ -48,6 +50,7 @@ const initializer: RivetPluginInitializer = (rivet) => {
       register(mongoDBStore);
       register(mongoDBVectorSearch);
       register(mongoDBCollectionSearch);
+      register(mongoDBAggregation);
     },
   };
 

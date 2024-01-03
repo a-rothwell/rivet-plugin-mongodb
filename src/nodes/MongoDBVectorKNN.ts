@@ -46,7 +46,7 @@ export default function (rivet: typeof Rivet) {
           collection: '',
           path: '',
         },
-        title: "Search MongoDB for closest vectors with KNN",
+        title: "(Deprecated) Search MongoDB for closest vectors with KNN",
         type: "mongoDBVectorKNN",
         visualData: {
           x: 0,
@@ -129,11 +129,11 @@ export default function (rivet: typeof Rivet) {
 
     getUIData(): NodeUIData {
       return {
-        contextMenuTitle: "MongoDB Vector KNN",
+        contextMenuTitle: "(Deprecated) MongoDB Vector KNN",
         group: "MongoDB",
         infoBoxBody:
           "This a node that takes a mongo db vector searches for similar vectors with KNN.",
-        infoBoxTitle: "Run Mongo DB vector search with KNN",
+        infoBoxTitle: "(Deprecated) Run Mongo DB vector search with KNN",
       };
     },
 
@@ -171,6 +171,9 @@ export default function (rivet: typeof Rivet) {
       data: MongoDBVectorKNNData
     ): string | NodeBodySpec | NodeBodySpec[] | undefined {
       return rivet.dedent`
+      This node type has been deprecated. Please use the MongoDB Vector Search node instead.
+      Check the documentation on github for migration instructions.
+      
       ${data.useDatabaseInput ? '(Database using input)' : 'Database: ' + data.database}
       ${data.useCollectionInput ? '(Collection using input)' : 'Collection: ' + data.collection}
       ${data.useKInput ? '(K using input)' : 'K: ' + data.k}
