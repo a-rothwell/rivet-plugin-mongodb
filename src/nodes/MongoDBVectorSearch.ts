@@ -27,12 +27,20 @@ import type {
   
     collection: string;
     useCollectionInput?: boolean;
-  
-    k: number;
-    useKInput?: boolean;
-  
+
+    index: string;
+    useIndexInput?: boolean;
+
     path: string;
     usePathInput?: boolean;
+
+    numCandidates: number;
+    useNumCandidatesInput?: boolean;
+
+    limit: number;
+    useLimitInput?: boolean;
+  
+    filter?: Record<string, unknown>;
   };
   
   export default function (rivet: typeof Rivet) {
@@ -41,10 +49,13 @@ import type {
         const node: MongoDBVectorSearch = {
           id: rivet.newId<NodeId>(),
           data: {
-            k: 10,
             database: '',
             collection: '',
+            index: '',
             path: '',
+            numCandidates: 10,
+            limit: 5,
+            filter: undefined
           },
           title: "Search MongoDB for closest vectors with vector search",
           type: "mongoDBVectorSearch",
@@ -65,10 +76,17 @@ import type {
         const inputs: NodeInputDefinition[] = [];
   
         inputs.push({
-          id: 'vector' as PortId,
-          title: 'Vector',
+          id: 'queryVector' as PortId,
+          title: 'Query Vector',
           dataType: 'vector',
           required: true,
+        });
+
+        inputs.push({
+          id: 'filter' as PortId,
+          title: 'Filter',
+          dataType: 'object',
+          required: false,
         });
   
         if (data.useDatabaseInput) {
@@ -88,12 +106,11 @@ import type {
             required: true,
           });
         }
-  
-        if (data.useKInput) {
+        if (data.useIndexInput) {
           inputs.push({
-            id: 'k' as PortId,
-            title: 'K',
-            dataType: 'number',
+            id: 'index' as PortId,
+            title: 'Index',
+            dataType: 'string',
             required: true,
           });
         }
@@ -103,6 +120,24 @@ import type {
             id: 'path' as PortId,
             title: 'Path',
             dataType: 'string',
+            required: true,
+          });
+        }
+
+        if (data.useNumCandidatesInput) {
+          inputs.push({
+            id: 'numCandidates' as PortId,
+            title: 'Number of Candidates',
+            dataType: 'number',
+            required: true,
+          });
+        }
+
+        if (data.useLimitInput) {
+          inputs.push({
+            id: 'limit' as PortId,
+            title: 'Limit',
+            dataType: 'number',
             required: true,
           });
         }
@@ -153,17 +188,30 @@ import type {
             useInputToggleDataKey: 'useCollectionInput',
           },
           {
-            type: 'number',
-            label: 'K',
-            dataKey: 'k',
-            useInputToggleDataKey: 'useKInput',
+            type: 'string',
+            label: 'Index',
+            dataKey: 'index',
+            useInputToggleDataKey: 'useIndexInput',
           },
           {
             type: 'string',
-            label: 'path',
+            label: 'Path',
             dataKey: 'path',
             useInputToggleDataKey: 'usePathInput',
-          }
+          },
+          {
+            type: 'number',
+            label: 'Number of Candidates',
+            dataKey: 'numCandidates',
+            useInputToggleDataKey: 'useNumCandidatesInput',
+          },
+          {
+            type: 'number',
+            label: 'Limit',
+            dataKey: 'limit',
+            useInputToggleDataKey: 'useLimitInput',
+          },
+
         ];
       },
   
@@ -173,8 +221,10 @@ import type {
         return rivet.dedent`
         ${data.useDatabaseInput ? '(Database using input)' : 'Database: ' + data.database}
         ${data.useCollectionInput ? '(Collection using input)' : 'Collection: ' + data.collection}
-        ${data.useKInput ? '(K using input)' : 'K: ' + data.k}
+        ${data.useIndexInput ? '(Index using input)' : 'Index: ' + data.index}
         ${data.usePathInput ? '(Path using input)' : 'Path: ' + data.path}
+        ${data.useNumCandidatesInput ? '(Number of Candidates using input)' : 'Number of Candidates: ' + data.numCandidates}
+        ${data.useLimitInput ? '(limit using input)' : 'Limit: ' + data.limit}
         `;
       },
   
@@ -191,26 +241,44 @@ import type {
           throw new Error("No MongoDB connection string provided");
         }
   
-        if (inputData['vector' as PortId]?.type !== 'vector') {
-          throw new Error(`Expected vector input, got ${inputData['vector' as PortId]?.type}`);
+        if (inputData['queryVector' as PortId]?.type !== 'vector') {
+          throw new Error(`Expected vector input, got ${inputData['queryVector' as PortId]?.type}`);
+        }
+
+        if(data.numCandidates > 10000){
+          throw new Error(`numCandidates must be between limit and 10000`);
+        }
+
+        if(data.numCandidates < data.limit){
+          throw new Error('numCandidates must be greater than or equal to limit')
         }
   
         const client = new MongoClient(uri);
         let results: Record<string, unknown>;
         try {
           await client.connect();
+
+          console.log("Input Data",inputData)
   
           const database = data.useDatabaseInput ? inputData['database' as PortId]?.value as string : data.database as string;
           const collection = data.useCollectionInput ? inputData['collection' as PortId]?.value as string : data.collection as string;
+          const index = data.useIndexInput ? inputData['index' as PortId]?.value as string : data.index as string;
           const path = data.usePathInput ? inputData['path' as PortId]?.value as string : data.path as string;
-  
+          const queryVector = inputData['queryVector' as PortId]?.value as number[];
+          const numCandidates = data.useNumCandidatesInput ? inputData['numCandidates' as PortId]?.value as number : data.numCandidates as number;
+          const limit = data.useLimitInput ? inputData['limit' as PortId]?.value as number : data.limit as number;
+          const filter = inputData['filter' as PortId]?.value as string;
+
+          console.log('filter', filter)
+
           results = await client.db(database).collection(collection).aggregate([{
-            "$search": {
-              "SearchBeta" : {
-                "vector": inputData['vector' as PortId]?.value,
-                "k": data.useKInput ? inputData['k' as PortId]?.value : data.k,
-                "path": path
-              }
+            "$vectorSearch": {
+              "index": index,
+              "path": path,
+              "queryVector": queryVector,
+              "numCandidates": numCandidates,
+              "limit": limit,
+              "filter": filter
             }}]
           ).toArray() as any;
         } catch (err) {
