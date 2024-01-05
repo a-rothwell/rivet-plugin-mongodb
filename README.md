@@ -2,24 +2,25 @@
 
 # Rivet MongoDB Plugin
 
-This plugin provides 3 new nodes for interacting with MongoDB for Rivet.
+This plugin provides 4 nodes for interacting with MongoDB for Rivet.
 
 - MongoDBStore - Store a vector in MongoDB with associated metadata
-
-- MongoDBVectorKNN - Find the K nearest neighbors of a vector in MongoDB ($search - knnBeta)
-
+- MongoDBAggregation - Perform an aggregation on a MongoDB collection
 - MongoDBCollectionSearch - Select a MongoDB collection of documents
-
+- MongoDBVectorSearch - Perform a vector search on a MongoDB collection ($vectorSearch)
 
 # Installation
 
-Navigate to the plugins section of the project tab and click the + button
+Navigate to the plugins tab and find the MongoDB plugin in the plugin list. Click Add. 
 
-Search and install the `rivet-mongodb-plugin`
+Make sure to add your database connection string in settings.
 
-Make sure to add your database connection string in settings
+For the MongoDBVectorSearch node to work you must create a index. Documentation on how to create an index can be found here: https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-type/
 
-For the MongoDBVectorKNN node to work you must create a index. Documentation on how to create an index can be found here: https://www.mongodb.com/docs/atlas/atlas-search/field-types/knn-vector/#std-label-bson-data-types-knn-vector
+Note that you will also need to include which fields you would also like to filter on in additional to the vector field.
+
+Full docs on vector search can be found here:
+https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-stage/
 
 # Plugin Cookbook
 
@@ -34,4 +35,7 @@ https://www.mongodb.com/developer/products/atlas/atlas-rivet-graph-ai-integ/
 - [ ] Add search filter support for the MongoDBCollectionSearch node
 - [ ] Improve the MongoDBCollectionSearch load performance and avoid loading the entire collection into memory
 - [ ] Optimize client connections to avoid reconnecting for each request
-- [ ] Add support for MongoDB Vector Search ($vectorSearch)
+
+# Changes from 0.0.2 to 0.0.3
+
+- MongoDBVectorKNN deprecated and replaced with MongoDBVectorSearch
