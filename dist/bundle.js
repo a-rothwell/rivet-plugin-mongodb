@@ -165,7 +165,7 @@ function MongoDBVectorKNN_default(rivet) {
           collection: "",
           path: ""
         },
-        title: "Search MongoDB for closest vectors with KNN",
+        title: "(Deprecated) Search MongoDB for closest vectors with KNN",
         type: "mongoDBVectorKNN",
         visualData: {
           x: 0,
@@ -229,10 +229,10 @@ function MongoDBVectorKNN_default(rivet) {
     },
     getUIData() {
       return {
-        contextMenuTitle: "MongoDB Vector KNN",
+        contextMenuTitle: "(Deprecated) MongoDB Vector KNN",
         group: "MongoDB",
         infoBoxBody: "This a node that takes a mongo db vector searches for similar vectors with KNN.",
-        infoBoxTitle: "Run Mongo DB vector search with KNN"
+        infoBoxTitle: "(Deprecated) Run Mongo DB vector search with KNN"
       };
     },
     getEditors(_data) {
@@ -265,6 +265,9 @@ function MongoDBVectorKNN_default(rivet) {
     },
     getBody(data) {
       return rivet.dedent`
+      This node type has been deprecated. Please use the MongoDB Vector Search node instead.
+      Check the documentation on github for migration instructions.
+      
       ${data.useDatabaseInput ? "(Database using input)" : "Database: " + data.database}
       ${data.useCollectionInput ? "(Collection using input)" : "Collection: " + data.collection}
       ${data.useKInput ? "(K using input)" : "K: " + data.k}
@@ -431,11 +434,354 @@ function MongoDBCollectionSearch_default(rivet) {
   return nodeDefinition;
 }
 
+// src/nodes/MongoDBAggregation.ts
+function MongoDBAggregation_default(rivet) {
+  const nodeImpl = {
+    create() {
+      const node = {
+        id: rivet.newId(),
+        data: {
+          database: "",
+          collection: "",
+          aggregation: ""
+        },
+        title: "Perform a MongoDB aggregation operation on a collection",
+        type: "mongoDBAggregation",
+        visualData: {
+          x: 0,
+          y: 0,
+          width: 200
+        }
+      };
+      return node;
+    },
+    getInputDefinitions(data, _connections, _nodes, _project) {
+      const inputs = [];
+      if (data.useDatabaseInput) {
+        inputs.push({
+          id: "database",
+          title: "Database",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useCollectionInput) {
+        inputs.push({
+          id: "collection",
+          title: "Collection",
+          dataType: "string",
+          required: true
+        });
+      }
+      inputs.push({
+        id: "aggregation",
+        title: "Aggregation",
+        dataType: "string",
+        required: true
+      });
+      return inputs;
+    },
+    getOutputDefinitions(_data, _connections, _nodes, _project) {
+      const outputs = [
+        {
+          dataType: "object",
+          id: "documents",
+          title: "Documents"
+        }
+      ];
+      return outputs;
+    },
+    getUIData() {
+      return {
+        contextMenuTitle: "MongoDB Aggregation",
+        group: "MongoDB",
+        infoBoxBody: "This a node that takes a MongoDB Aggregation operation and returns results.",
+        infoBoxTitle: "Run a MongoDB aggregation operation on a collection and return results"
+      };
+    },
+    getEditors(_data) {
+      return [
+        {
+          type: "string",
+          label: "Database",
+          dataKey: "database",
+          useInputToggleDataKey: "useDatabaseInput"
+        },
+        {
+          type: "string",
+          label: "Collection",
+          dataKey: "collection",
+          useInputToggleDataKey: "useCollectionInput"
+        }
+      ];
+    },
+    getBody(data) {
+      return rivet.dedent`
+        ${data.useDatabaseInput ? "(Database using input)" : "Database: " + data.database}
+        ${data.useCollectionInput ? "(Collection using input)" : "Collection: " + data.collection}
+        `;
+    },
+    async process(data, inputData, context) {
+      const { MongoClient } = await import("../dist/nodeEntry.cjs");
+      const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
+      if (!uri) {
+        throw new Error("No MongoDB connection string provided");
+      }
+      const client = new MongoClient(uri);
+      let results;
+      try {
+        await client.connect();
+        const database = data.useDatabaseInput ? inputData["database"]?.value : data.database;
+        const collection = data.useCollectionInput ? inputData["collection"]?.value : data.collection;
+        const aggregation = inputData["aggregation"]?.value;
+        results = await client.db(database).collection(collection).aggregate(
+          aggregation
+        ).toArray();
+      } catch (err) {
+        throw new Error(`Error running aggregation: ${err}`);
+      } finally {
+        await client.close();
+      }
+      return {
+        ["documents"]: {
+          type: "object",
+          value: results
+        }
+      };
+    }
+  };
+  const nodeDefinition = rivet.pluginNodeDefinition(
+    nodeImpl,
+    "Run a MongoDB aggregation operation on a collection and return results"
+  );
+  return nodeDefinition;
+}
+
+// src/nodes/MongoDBVectorSearch.ts
+function MongoDBVectorSearch_default(rivet) {
+  const nodeImpl = {
+    create() {
+      const node = {
+        id: rivet.newId(),
+        data: {
+          database: "",
+          collection: "",
+          index: "",
+          path: "",
+          numCandidates: 10,
+          limit: 5,
+          filter: void 0
+        },
+        title: "Search MongoDB for closest vectors with vector search",
+        type: "mongoDBVectorSearch",
+        visualData: {
+          x: 0,
+          y: 0,
+          width: 200
+        }
+      };
+      return node;
+    },
+    getInputDefinitions(data, _connections, _nodes, _project) {
+      const inputs = [];
+      inputs.push({
+        id: "queryVector",
+        title: "Query Vector",
+        dataType: "vector",
+        required: true
+      });
+      inputs.push({
+        id: "filter",
+        title: "Filter",
+        dataType: "object",
+        required: false
+      });
+      if (data.useDatabaseInput) {
+        inputs.push({
+          id: "database",
+          title: "Database",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useCollectionInput) {
+        inputs.push({
+          id: "collection",
+          title: "Collection",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useIndexInput) {
+        inputs.push({
+          id: "index",
+          title: "Index",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.usePathInput) {
+        inputs.push({
+          id: "path",
+          title: "Path",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useNumCandidatesInput) {
+        inputs.push({
+          id: "numCandidates",
+          title: "Number of Candidates",
+          dataType: "number",
+          required: true
+        });
+      }
+      if (data.useLimitInput) {
+        inputs.push({
+          id: "limit",
+          title: "Limit",
+          dataType: "number",
+          required: true
+        });
+      }
+      return inputs;
+    },
+    getOutputDefinitions(_data, _connections, _nodes, _project) {
+      const outputs = [
+        {
+          dataType: "object",
+          id: "documents",
+          title: "Documents"
+        }
+      ];
+      return outputs;
+    },
+    getUIData() {
+      return {
+        contextMenuTitle: "MongoDB Vector Search",
+        group: "MongoDB",
+        infoBoxBody: "This a node that takes a mongo db vector searches for similar vectors with Search.",
+        infoBoxTitle: "Run Mongo DB vector search with Search"
+      };
+    },
+    getEditors(_data) {
+      return [
+        {
+          type: "string",
+          label: "Database",
+          dataKey: "database",
+          useInputToggleDataKey: "useDatabaseInput"
+        },
+        {
+          type: "string",
+          label: "Collection",
+          dataKey: "collection",
+          useInputToggleDataKey: "useCollectionInput"
+        },
+        {
+          type: "string",
+          label: "Index",
+          dataKey: "index",
+          useInputToggleDataKey: "useIndexInput"
+        },
+        {
+          type: "string",
+          label: "Path",
+          dataKey: "path",
+          useInputToggleDataKey: "usePathInput"
+        },
+        {
+          type: "number",
+          label: "Number of Candidates",
+          dataKey: "numCandidates",
+          useInputToggleDataKey: "useNumCandidatesInput"
+        },
+        {
+          type: "number",
+          label: "Limit",
+          dataKey: "limit",
+          useInputToggleDataKey: "useLimitInput"
+        }
+      ];
+    },
+    getBody(data) {
+      return rivet.dedent`
+        ${data.useDatabaseInput ? "(Database using input)" : "Database: " + data.database}
+        ${data.useCollectionInput ? "(Collection using input)" : "Collection: " + data.collection}
+        ${data.useIndexInput ? "(Index using input)" : "Index: " + data.index}
+        ${data.usePathInput ? "(Path using input)" : "Path: " + data.path}
+        ${data.useNumCandidatesInput ? "(Number of Candidates using input)" : "Number of Candidates: " + data.numCandidates}
+        ${data.useLimitInput ? "(limit using input)" : "Limit: " + data.limit}
+        `;
+    },
+    async process(data, inputData, context) {
+      const { MongoClient } = await import("../dist/nodeEntry.cjs");
+      const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
+      if (!uri) {
+        throw new Error("No MongoDB connection string provided");
+      }
+      if (inputData["queryVector"]?.type !== "vector") {
+        throw new Error(`Expected vector input, got ${inputData["queryVector"]?.type}`);
+      }
+      if (data.numCandidates > 1e4) {
+        throw new Error(`numCandidates must be between limit and 10000`);
+      }
+      if (data.numCandidates < data.limit) {
+        throw new Error("numCandidates must be greater than or equal to limit");
+      }
+      const client = new MongoClient(uri);
+      let results;
+      try {
+        await client.connect();
+        console.log("Input Data", inputData);
+        const database = data.useDatabaseInput ? inputData["database"]?.value : data.database;
+        const collection = data.useCollectionInput ? inputData["collection"]?.value : data.collection;
+        const index = data.useIndexInput ? inputData["index"]?.value : data.index;
+        const path = data.usePathInput ? inputData["path"]?.value : data.path;
+        const queryVector = inputData["queryVector"]?.value;
+        const numCandidates = data.useNumCandidatesInput ? inputData["numCandidates"]?.value : data.numCandidates;
+        const limit = data.useLimitInput ? inputData["limit"]?.value : data.limit;
+        const filter = inputData["filter"]?.value;
+        console.log("filter", filter);
+        results = await client.db(database).collection(collection).aggregate(
+          [{
+            "$vectorSearch": {
+              "index": index,
+              "path": path,
+              "queryVector": queryVector,
+              "numCandidates": numCandidates,
+              "limit": limit,
+              "filter": filter
+            }
+          }]
+        ).toArray();
+      } catch (err) {
+        throw new Error(`Error vector searching document: ${err}`);
+      } finally {
+        await client.close();
+      }
+      return {
+        ["documents"]: {
+          type: "object",
+          value: results
+        }
+      };
+    }
+  };
+  const nodeDefinition = rivet.pluginNodeDefinition(
+    nodeImpl,
+    "Run Mongo DB vector search with Search"
+  );
+  return nodeDefinition;
+}
+
 // src/index.ts
 var initializer = (rivet) => {
   const mongoDBStore = MongoDBStore_default(rivet);
   const mongoDBVectorSearch = MongoDBVectorKNN_default(rivet);
   const mongoDBCollectionSearch = MongoDBCollectionSearch_default(rivet);
+  const mongoDBAggregation = MongoDBAggregation_default(rivet);
+  const mongoDBVectorKNN = MongoDBVectorSearch_default(rivet);
   const plugin = {
     // The ID of your plugin should be unique across all plugins.
     id: "rivetPluginMongodb",
@@ -464,6 +810,8 @@ var initializer = (rivet) => {
       register(mongoDBStore);
       register(mongoDBVectorSearch);
       register(mongoDBCollectionSearch);
+      register(mongoDBAggregation);
+      register(mongoDBVectorKNN);
     }
   };
   return plugin;
