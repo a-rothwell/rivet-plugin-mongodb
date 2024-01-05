@@ -38,4 +38,4 @@ https://www.mongodb.com/developer/products/atlas/atlas-rivet-graph-ai-integ/
 
 # Changes from 0.0.2 to 0.0.3
 
-- MongoDBVectorKNN deprecated and replaced with MongoDBVectorSearch
+- MongoDBVectorKNN deprecated and replaced with MongoDBVectorSearch. See the installation section above for instructions on how to setup a new index for MongoDBVectorSearch.
