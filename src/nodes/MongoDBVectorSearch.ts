@@ -257,8 +257,6 @@ import type {
         let results: Record<string, unknown>;
         try {
           await client.connect();
-
-          console.log("Input Data",inputData)
   
           const database = data.useDatabaseInput ? inputData['database' as PortId]?.value as string : data.database as string;
           const collection = data.useCollectionInput ? inputData['collection' as PortId]?.value as string : data.collection as string;
@@ -268,8 +266,6 @@ import type {
           const numCandidates = data.useNumCandidatesInput ? inputData['numCandidates' as PortId]?.value as number : data.numCandidates as number;
           const limit = data.useLimitInput ? inputData['limit' as PortId]?.value as number : data.limit as number;
           const filter = inputData['filter' as PortId]?.value as string;
-
-          console.log('filter', filter)
 
           results = await client.db(database).collection(collection).aggregate([{
             "$vectorSearch": {

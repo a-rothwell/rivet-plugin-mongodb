@@ -1,0 +1,26 @@
+version: 4
+data:
+  metadata:
+    description: ""
+    id: zeKyfHXlVOW-RQep7fjZy
+    name: MongoDB Plugin Examples/Run a MongoDb aggregation
+  nodes:
+    '[cerV36vnVoHjjpzvwv8zX]:mongoDBAggregation "Perform a MongoDB aggregation operation on a collection and return documents"':
+      data:
+        aggregation: ""
+        collection: embedded_movies
+        database: sample_mflix
+        useDatabaseInput: false
+      visualData: 782/237/384/29//
+    '[ug5DJ_o11rVL5mDI-F4P2]:object "Object"':
+      data:
+        jsonTemplate: |-
+          [
+            {
+              "$count": "directors"
+            }
+          ]
+      outgoingConnections:
+        - output->"Perform a MongoDB aggregation operation on a collection and
+          return documents" cerV36vnVoHjjpzvwv8zX/aggregation
+      visualData: 472/227/230/30//

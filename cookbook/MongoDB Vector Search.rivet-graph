@@ -1,0 +1,72 @@
+version: 4
+data:
+  metadata:
+    description: ""
+    id: K0GF088cChG0Ubg5PZ4DR
+    name: MongoDB Plugin Examples/MongoVector Search (Copy)
+  nodes:
+    '[FH0dLDK_WIMoxHOX6qwu5]:text "Text"':
+      data:
+        text: "{{input}}"
+      visualData: 1855.8238628906254/26.737396889448423/330/84//
+    '[Fo8kmkJgGYQvlpBIdkM1t]:object "Object"':
+      data:
+        jsonTemplate: "{{input}}"
+      outgoingConnections:
+        - output->"Extract Object Path" m9XVg247lkb4HpIr7Wgq3/object
+      visualData: 1099.5272668724685/13.16205773496399/272.7521598469252/78//
+    '[P0jDRQul6kP6c-gRBOJiw]:object "Object"':
+      data:
+        jsonTemplate: |-
+          {
+            "$and": [
+              {
+                "year": {
+                  "$gt": 1990,
+                  "$lt": 2000
+                }
+              }
+            ]
+          }
+      outgoingConnections:
+        - output->"Search MongoDB for closest vectors with vector search"
+          U38fsXBEkdYo94hFQ2afS/filter
+      visualData: 319.25979611755565/157.5061226975099/230/82//
+    '[U38fsXBEkdYo94hFQ2afS]:mongoDBVectorSearch "Search MongoDB for closest vectors with vector search"':
+      data:
+        collection: embedded_movies
+        database: sample_mflix
+        index: plot_embedding_index
+        limit: 5
+        numCandidates: 10
+        path: plot_embedding
+        useCollectionInput: false
+        useDatabaseInput: false
+        useIndexInput: false
+        useLimitInput: false
+        useNumCandidatesInput: false
+        usePathInput: false
+      outgoingConnections:
+        - documents->"Object" Fo8kmkJgGYQvlpBIdkM1t/input
+      visualData: 785.4112795573476/-97.9994652664883/263.15511637355485/77//
+    '[_GMZcU_LP4A6TdtJFKcQ_]:getEmbedding "Get Embedding"':
+      data:
+        integration: openai
+        useIntegrationInput: false
+      outgoingConnections:
+        - embedding->"Search MongoDB for closest vectors with vector search"
+          U38fsXBEkdYo94hFQ2afS/queryVector
+      visualData: 463.93960694238467/-9.80337012063123/230/76//
+    '[m9XVg247lkb4HpIr7Wgq3]:extractObjectPath "Extract Object Path"':
+      data:
+        path: $..year
+        usePathInput: false
+      outgoingConnections:
+        - all_matches->"Text" FH0dLDK_WIMoxHOX6qwu5/input
+      visualData: 1482.5197172891221/6.723361626155045/280/83//
+    '[qhr-O9rziITk-_NKWrOhM]:text "Text"':
+      data:
+        text: A security guard is in charge of protecting a museum.
+      outgoingConnections:
+        - output->"Get Embedding" _GMZcU_LP4A6TdtJFKcQ_/input
+      visualData: 73.14824030390702/-11.86472640854516/330/51//
