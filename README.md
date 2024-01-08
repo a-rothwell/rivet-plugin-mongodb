@@ -52,6 +52,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tbody>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/a-rothwell"><img src="https://avatars.githubusercontent.com/u/12634659?v=4?s=100" width="100px;" alt="Andrew Rothwell"/><br /><sub><b>Andrew Rothwell</b></sub></a><br /><a href="#code-a-rothwell" title="Code">💻</a> <a href="#ideas-a-rothwell" title="Ideas, Planning, & Feedback">🤔</a> <a href="#bug-a-rothwell" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/mloenow"><img src="https://avatars.githubusercontent.com/u/546929?v=4?s=100" width="100px;" alt="mloenow"/><br /><sub><b>mloenow</b></sub></a><br /><a href="#bug-mloenow" title="Bug reports">🐛</a></td>
     </tr>
   </tbody>
 </table>
