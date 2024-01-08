@@ -5,8 +5,15 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -16448,19 +16455,41 @@ var require_is_stream = __commonJS({
   }
 });
 
-// node_modules/gcp-metadata/node_modules/gaxios/build/src/common.js
+// node_modules/gaxios/build/src/common.js
 var require_common3 = __commonJS({
-  "node_modules/gcp-metadata/node_modules/gaxios/build/src/common.js"(exports) {
+  "node_modules/gaxios/build/src/common.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.GaxiosError = void 0;
+    exports.defaultErrorRedactor = exports.GaxiosError = void 0;
+    var url_1 = require("url");
     var GaxiosError = class extends Error {
-      constructor(message, options, response) {
+      constructor(message, config, response, error) {
         super(message);
+        this.config = config;
         this.response = response;
-        this.config = options;
-        this.response.data = translateData(options.responseType, response.data);
-        this.code = response.status.toString();
+        this.error = error;
+        if (this.response) {
+          try {
+            this.response.data = translateData(config.responseType, response === null || response === void 0 ? void 0 : response.data);
+          } catch (_a) {
+          }
+          this.status = this.response.status;
+        }
+        if (error && "code" in error && error.code) {
+          this.code = error.code;
+        }
+        if (config.errorRedactor) {
+          const errorRedactor = config.errorRedactor;
+          this.config = { ...config };
+          if (this.response) {
+            this.response = { ...this.response, config: { ...this.response.config } };
+          }
+          const results = errorRedactor({ config, response });
+          this.config = { ...config, ...results.config };
+          if (this.response) {
+            this.response = { ...this.response, ...results.response, config };
+          }
+        }
       }
     };
     exports.GaxiosError = GaxiosError;
@@ -16478,12 +16507,65 @@ var require_common3 = __commonJS({
           return data;
       }
     }
+    function defaultErrorRedactor(data) {
+      const REDACT = "<<REDACTED> - See `errorRedactor` option in `gaxios` for configuration>.";
+      function redactHeaders(headers) {
+        if (!headers)
+          return;
+        for (const key of Object.keys(headers)) {
+          if (/^authentication$/.test(key)) {
+            headers[key] = REDACT;
+          }
+        }
+      }
+      function redactString(obj, key) {
+        if (typeof obj === "object" && obj !== null && typeof obj[key] === "string") {
+          const text = obj[key];
+          if (/grant_type=/.test(text) || /assertion=/.test(text)) {
+            obj[key] = REDACT;
+          }
+        }
+      }
+      function redactObject(obj) {
+        if (typeof obj === "object" && obj !== null) {
+          if ("grant_type" in obj) {
+            obj["grant_type"] = REDACT;
+          }
+          if ("assertion" in obj) {
+            obj["assertion"] = REDACT;
+          }
+        }
+      }
+      if (data.config) {
+        redactHeaders(data.config.headers);
+        redactString(data.config, "data");
+        redactObject(data.config.data);
+        redactString(data.config, "body");
+        redactObject(data.config.body);
+        try {
+          const url = new url_1.URL(data.config.url || "");
+          if (url.searchParams.has("token")) {
+            url.searchParams.set("token", REDACT);
+          }
+          data.config.url = url.toString();
+        } catch (_a) {
+        }
+      }
+      if (data.response) {
+        defaultErrorRedactor({ config: data.response.config });
+        redactHeaders(data.response.headers);
+        redactString(data.response, "data");
+        redactObject(data.response.data);
+      }
+      return data;
+    }
+    exports.defaultErrorRedactor = defaultErrorRedactor;
   }
 });
 
-// node_modules/gcp-metadata/node_modules/gaxios/build/src/retry.js
+// node_modules/gaxios/build/src/retry.js
 var require_retry = __commonJS({
-  "node_modules/gcp-metadata/node_modules/gaxios/build/src/retry.js"(exports) {
+  "node_modules/gaxios/build/src/retry.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getRetryConfig = void 0;
@@ -16536,8 +16618,9 @@ var require_retry = __commonJS({
     }
     exports.getRetryConfig = getRetryConfig;
     function shouldRetryRequest(err) {
+      var _a;
       const config = getConfig(err);
-      if (err.name === "AbortError") {
+      if (err.name === "AbortError" || ((_a = err.error) === null || _a === void 0 ? void 0 : _a.name) === "AbortError") {
         return false;
       }
       if (!config || config.retry === 0) {
@@ -16577,9 +16660,9 @@ var require_retry = __commonJS({
   }
 });
 
-// node_modules/gcp-metadata/node_modules/ms/index.js
+// node_modules/debug/node_modules/ms/index.js
 var require_ms = __commonJS({
-  "node_modules/gcp-metadata/node_modules/ms/index.js"(exports, module2) {
+  "node_modules/debug/node_modules/ms/index.js"(exports, module2) {
     var s = 1e3;
     var m = s * 60;
     var h = m * 60;
@@ -16693,9 +16776,9 @@ var require_ms = __commonJS({
   }
 });
 
-// node_modules/gcp-metadata/node_modules/debug/src/common.js
+// node_modules/debug/src/common.js
 var require_common4 = __commonJS({
-  "node_modules/gcp-metadata/node_modules/debug/src/common.js"(exports, module2) {
+  "node_modules/debug/src/common.js"(exports, module2) {
     function setup(env) {
       createDebug.debug = createDebug;
       createDebug.default = createDebug;
@@ -16856,9 +16939,9 @@ var require_common4 = __commonJS({
   }
 });
 
-// node_modules/gcp-metadata/node_modules/debug/src/browser.js
+// node_modules/debug/src/browser.js
 var require_browser = __commonJS({
-  "node_modules/gcp-metadata/node_modules/debug/src/browser.js"(exports, module2) {
+  "node_modules/debug/src/browser.js"(exports, module2) {
     exports.formatArgs = formatArgs;
     exports.save = save;
     exports.load = load;
@@ -17134,9 +17217,9 @@ var require_supports_color = __commonJS({
   }
 });
 
-// node_modules/gcp-metadata/node_modules/debug/src/node.js
+// node_modules/debug/src/node.js
 var require_node = __commonJS({
-  "node_modules/gcp-metadata/node_modules/debug/src/node.js"(exports, module2) {
+  "node_modules/debug/src/node.js"(exports, module2) {
     var tty = require("tty");
     var util = require("util");
     exports.init = init;
@@ -17308,9 +17391,9 @@ var require_node = __commonJS({
   }
 });
 
-// node_modules/gcp-metadata/node_modules/debug/src/index.js
+// node_modules/debug/src/index.js
 var require_src = __commonJS({
-  "node_modules/gcp-metadata/node_modules/debug/src/index.js"(exports, module2) {
+  "node_modules/debug/src/index.js"(exports, module2) {
     if (typeof process === "undefined" || process.type === "renderer" || process.browser === true || process.__nwjs) {
       module2.exports = require_browser();
     } else {
@@ -17319,221 +17402,202 @@ var require_src = __commonJS({
   }
 });
 
-// node_modules/gcp-metadata/node_modules/agent-base/dist/src/promisify.js
-var require_promisify = __commonJS({
-  "node_modules/gcp-metadata/node_modules/agent-base/dist/src/promisify.js"(exports) {
+// node_modules/agent-base/dist/helpers.js
+var require_helpers = __commonJS({
+  "node_modules/agent-base/dist/helpers.js"(exports) {
     "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports && exports.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
+    };
     Object.defineProperty(exports, "__esModule", { value: true });
-    function promisify(fn) {
-      return function(req, opts) {
-        return new Promise((resolve, reject) => {
-          fn.call(this, req, opts, (err, rtn) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(rtn);
-            }
-          });
-        });
-      };
+    exports.req = exports.json = exports.toBuffer = void 0;
+    var http = __importStar(require("http"));
+    var https = __importStar(require("https"));
+    async function toBuffer(stream) {
+      let length = 0;
+      const chunks = [];
+      for await (const chunk of stream) {
+        length += chunk.length;
+        chunks.push(chunk);
+      }
+      return Buffer.concat(chunks, length);
     }
-    exports.default = promisify;
+    exports.toBuffer = toBuffer;
+    async function json(stream) {
+      const buf = await toBuffer(stream);
+      const str = buf.toString("utf8");
+      try {
+        return JSON.parse(str);
+      } catch (_err) {
+        const err = _err;
+        err.message += ` (input: ${str})`;
+        throw err;
+      }
+    }
+    exports.json = json;
+    function req(url, opts = {}) {
+      const href = typeof url === "string" ? url : url.href;
+      const req2 = (href.startsWith("https:") ? https : http).request(url, opts);
+      const promise = new Promise((resolve, reject) => {
+        req2.once("response", resolve).once("error", reject).end();
+      });
+      req2.then = promise.then.bind(promise);
+      return req2;
+    }
+    exports.req = req;
   }
 });
 
-// node_modules/gcp-metadata/node_modules/agent-base/dist/src/index.js
-var require_src2 = __commonJS({
-  "node_modules/gcp-metadata/node_modules/agent-base/dist/src/index.js"(exports, module2) {
+// node_modules/agent-base/dist/index.js
+var require_dist = __commonJS({
+  "node_modules/agent-base/dist/index.js"(exports) {
     "use strict";
-    var __importDefault = exports && exports.__importDefault || function(mod) {
-      return mod && mod.__esModule ? mod : { "default": mod };
+    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports && exports.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
     };
-    var events_1 = require("events");
-    var debug_1 = __importDefault(require_src());
-    var promisify_1 = __importDefault(require_promisify());
-    var debug = debug_1.default("agent-base");
-    function isAgent(v) {
-      return Boolean(v) && typeof v.addRequest === "function";
-    }
-    function isSecureEndpoint() {
-      const { stack } = new Error();
-      if (typeof stack !== "string")
-        return false;
-      return stack.split("\n").some((l) => l.indexOf("(https.js:") !== -1 || l.indexOf("node:https:") !== -1);
-    }
-    function createAgent(callback, opts) {
-      return new createAgent.Agent(callback, opts);
-    }
-    (function(createAgent2) {
-      class Agent extends events_1.EventEmitter {
-        constructor(callback, _opts) {
-          super();
-          let opts = _opts;
-          if (typeof callback === "function") {
-            this.callback = callback;
-          } else if (callback) {
-            opts = callback;
+    var __exportStar = exports && exports.__exportStar || function(m, exports2) {
+      for (var p in m)
+        if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p))
+          __createBinding(exports2, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Agent = void 0;
+    var http = __importStar(require("http"));
+    __exportStar(require_helpers(), exports);
+    var INTERNAL = Symbol("AgentBaseInternalState");
+    var Agent = class extends http.Agent {
+      constructor(opts) {
+        super(opts);
+        this[INTERNAL] = {};
+      }
+      /**
+       * Determine whether this is an `http` or `https` request.
+       */
+      isSecureEndpoint(options) {
+        if (options) {
+          if (typeof options.secureEndpoint === "boolean") {
+            return options.secureEndpoint;
           }
-          this.timeout = null;
-          if (opts && typeof opts.timeout === "number") {
-            this.timeout = opts.timeout;
-          }
-          this.maxFreeSockets = 1;
-          this.maxSockets = 1;
-          this.maxTotalSockets = Infinity;
-          this.sockets = {};
-          this.freeSockets = {};
-          this.requests = {};
-          this.options = {};
-        }
-        get defaultPort() {
-          if (typeof this.explicitDefaultPort === "number") {
-            return this.explicitDefaultPort;
-          }
-          return isSecureEndpoint() ? 443 : 80;
-        }
-        set defaultPort(v) {
-          this.explicitDefaultPort = v;
-        }
-        get protocol() {
-          if (typeof this.explicitProtocol === "string") {
-            return this.explicitProtocol;
-          }
-          return isSecureEndpoint() ? "https:" : "http:";
-        }
-        set protocol(v) {
-          this.explicitProtocol = v;
-        }
-        callback(req, opts, fn) {
-          throw new Error('"agent-base" has no default implementation, you must subclass and override `callback()`');
-        }
-        /**
-         * Called by node-core's "_http_client.js" module when creating
-         * a new HTTP request with this Agent instance.
-         *
-         * @api public
-         */
-        addRequest(req, _opts) {
-          const opts = Object.assign({}, _opts);
-          if (typeof opts.secureEndpoint !== "boolean") {
-            opts.secureEndpoint = isSecureEndpoint();
-          }
-          if (opts.host == null) {
-            opts.host = "localhost";
-          }
-          if (opts.port == null) {
-            opts.port = opts.secureEndpoint ? 443 : 80;
-          }
-          if (opts.protocol == null) {
-            opts.protocol = opts.secureEndpoint ? "https:" : "http:";
-          }
-          if (opts.host && opts.path) {
-            delete opts.path;
-          }
-          delete opts.agent;
-          delete opts.hostname;
-          delete opts._defaultAgent;
-          delete opts.defaultPort;
-          delete opts.createConnection;
-          req._last = true;
-          req.shouldKeepAlive = false;
-          let timedOut = false;
-          let timeoutId = null;
-          const timeoutMs = opts.timeout || this.timeout;
-          const onerror = (err) => {
-            if (req._hadError)
-              return;
-            req.emit("error", err);
-            req._hadError = true;
-          };
-          const ontimeout = () => {
-            timeoutId = null;
-            timedOut = true;
-            const err = new Error(`A "socket" was not created for HTTP request before ${timeoutMs}ms`);
-            err.code = "ETIMEOUT";
-            onerror(err);
-          };
-          const callbackError = (err) => {
-            if (timedOut)
-              return;
-            if (timeoutId !== null) {
-              clearTimeout(timeoutId);
-              timeoutId = null;
-            }
-            onerror(err);
-          };
-          const onsocket = (socket) => {
-            if (timedOut)
-              return;
-            if (timeoutId != null) {
-              clearTimeout(timeoutId);
-              timeoutId = null;
-            }
-            if (isAgent(socket)) {
-              debug("Callback returned another Agent instance %o", socket.constructor.name);
-              socket.addRequest(req, opts);
-              return;
-            }
-            if (socket) {
-              socket.once("free", () => {
-                this.freeSocket(socket, opts);
-              });
-              req.onSocket(socket);
-              return;
-            }
-            const err = new Error(`no Duplex stream was returned to agent-base for \`${req.method} ${req.path}\``);
-            onerror(err);
-          };
-          if (typeof this.callback !== "function") {
-            onerror(new Error("`callback` is not defined"));
-            return;
-          }
-          if (!this.promisifiedCallback) {
-            if (this.callback.length >= 3) {
-              debug("Converting legacy callback function to promise");
-              this.promisifiedCallback = promisify_1.default(this.callback);
-            } else {
-              this.promisifiedCallback = this.callback;
-            }
-          }
-          if (typeof timeoutMs === "number" && timeoutMs > 0) {
-            timeoutId = setTimeout(ontimeout, timeoutMs);
-          }
-          if ("port" in opts && typeof opts.port !== "number") {
-            opts.port = Number(opts.port);
-          }
-          try {
-            debug("Resolving socket for %o request: %o", opts.protocol, `${req.method} ${req.path}`);
-            Promise.resolve(this.promisifiedCallback(req, opts)).then(onsocket, callbackError);
-          } catch (err) {
-            Promise.reject(err).catch(callbackError);
+          if (typeof options.protocol === "string") {
+            return options.protocol === "https:";
           }
         }
-        freeSocket(socket, opts) {
-          debug("Freeing socket %o %o", socket.constructor.name, opts);
-          socket.destroy();
+        const { stack } = new Error();
+        if (typeof stack !== "string")
+          return false;
+        return stack.split("\n").some((l) => l.indexOf("(https.js:") !== -1 || l.indexOf("node:https:") !== -1);
+      }
+      createSocket(req, options, cb) {
+        const connectOpts = {
+          ...options,
+          secureEndpoint: this.isSecureEndpoint(options)
+        };
+        Promise.resolve().then(() => this.connect(req, connectOpts)).then((socket) => {
+          if (socket instanceof http.Agent) {
+            return socket.addRequest(req, connectOpts);
+          }
+          this[INTERNAL].currentSocket = socket;
+          super.createSocket(req, options, cb);
+        }, cb);
+      }
+      createConnection() {
+        const socket = this[INTERNAL].currentSocket;
+        this[INTERNAL].currentSocket = void 0;
+        if (!socket) {
+          throw new Error("No socket was returned in the `connect()` function");
         }
-        destroy() {
-          debug("Destroying agent %o", this.constructor.name);
+        return socket;
+      }
+      get defaultPort() {
+        return this[INTERNAL].defaultPort ?? (this.protocol === "https:" ? 443 : 80);
+      }
+      set defaultPort(v) {
+        if (this[INTERNAL]) {
+          this[INTERNAL].defaultPort = v;
         }
       }
-      createAgent2.Agent = Agent;
-      createAgent2.prototype = createAgent2.Agent.prototype;
-    })(createAgent || (createAgent = {}));
-    module2.exports = createAgent;
+      get protocol() {
+        return this[INTERNAL].protocol ?? (this.isSecureEndpoint() ? "https:" : "http:");
+      }
+      set protocol(v) {
+        if (this[INTERNAL]) {
+          this[INTERNAL].protocol = v;
+        }
+      }
+    };
+    exports.Agent = Agent;
   }
 });
 
-// node_modules/gcp-metadata/node_modules/https-proxy-agent/dist/parse-proxy-response.js
+// node_modules/https-proxy-agent/dist/parse-proxy-response.js
 var require_parse_proxy_response = __commonJS({
-  "node_modules/gcp-metadata/node_modules/https-proxy-agent/dist/parse-proxy-response.js"(exports) {
+  "node_modules/https-proxy-agent/dist/parse-proxy-response.js"(exports) {
     "use strict";
     var __importDefault = exports && exports.__importDefault || function(mod) {
       return mod && mod.__esModule ? mod : { "default": mod };
     };
     Object.defineProperty(exports, "__esModule", { value: true });
+    exports.parseProxyResponse = void 0;
     var debug_1 = __importDefault(require_src());
-    var debug = debug_1.default("https-proxy-agent:parse-proxy-response");
+    var debug = (0, debug_1.default)("https-proxy-agent:parse-proxy-response");
     function parseProxyResponse(socket) {
       return new Promise((resolve, reject) => {
         let buffersLength = 0;
@@ -17548,14 +17612,12 @@ var require_parse_proxy_response = __commonJS({
         function cleanup() {
           socket.removeListener("end", onend);
           socket.removeListener("error", onerror);
-          socket.removeListener("close", onclose);
           socket.removeListener("readable", read);
         }
-        function onclose(err) {
-          debug("onclose had error %o", err);
-        }
         function onend() {
+          cleanup();
           debug("onend");
+          reject(new Error("Proxy connection ended before receiving CONNECT response"));
         }
         function onerror(err) {
           cleanup();
@@ -17572,170 +17634,192 @@ var require_parse_proxy_response = __commonJS({
             read();
             return;
           }
-          const firstLine = buffered.toString("ascii", 0, buffered.indexOf("\r\n"));
-          const statusCode = +firstLine.split(" ")[1];
-          debug("got proxy server response: %o", firstLine);
+          const headerParts = buffered.slice(0, endOfHeaders).toString("ascii").split("\r\n");
+          const firstLine = headerParts.shift();
+          if (!firstLine) {
+            socket.destroy();
+            return reject(new Error("No header received from proxy CONNECT response"));
+          }
+          const firstLineParts = firstLine.split(" ");
+          const statusCode = +firstLineParts[1];
+          const statusText = firstLineParts.slice(2).join(" ");
+          const headers = {};
+          for (const header of headerParts) {
+            if (!header)
+              continue;
+            const firstColon = header.indexOf(":");
+            if (firstColon === -1) {
+              socket.destroy();
+              return reject(new Error(`Invalid header from proxy CONNECT response: "${header}"`));
+            }
+            const key = header.slice(0, firstColon).toLowerCase();
+            const value = header.slice(firstColon + 1).trimStart();
+            const current = headers[key];
+            if (typeof current === "string") {
+              headers[key] = [current, value];
+            } else if (Array.isArray(current)) {
+              current.push(value);
+            } else {
+              headers[key] = value;
+            }
+          }
+          debug("got proxy server response: %o %o", firstLine, headers);
+          cleanup();
           resolve({
-            statusCode,
+            connect: {
+              statusCode,
+              statusText,
+              headers
+            },
             buffered
           });
         }
         socket.on("error", onerror);
-        socket.on("close", onclose);
         socket.on("end", onend);
         read();
       });
     }
-    exports.default = parseProxyResponse;
+    exports.parseProxyResponse = parseProxyResponse;
   }
 });
 
-// node_modules/gcp-metadata/node_modules/https-proxy-agent/dist/agent.js
-var require_agent = __commonJS({
-  "node_modules/gcp-metadata/node_modules/https-proxy-agent/dist/agent.js"(exports) {
+// node_modules/https-proxy-agent/dist/index.js
+var require_dist2 = __commonJS({
+  "node_modules/https-proxy-agent/dist/index.js"(exports) {
     "use strict";
-    var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
-      function adopt(value) {
-        return value instanceof P ? value : new P(function(resolve) {
-          resolve(value);
-        });
+    var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
       }
-      return new (P || (P = Promise))(function(resolve, reject) {
-        function fulfilled(value) {
-          try {
-            step(generator.next(value));
-          } catch (e) {
-            reject(e);
-          }
-        }
-        function rejected(value) {
-          try {
-            step(generator["throw"](value));
-          } catch (e) {
-            reject(e);
-          }
-        }
-        function step(result) {
-          result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-        }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-      });
+      Object.defineProperty(o, k2, desc);
+    } : function(o, m, k, k2) {
+      if (k2 === void 0)
+        k2 = k;
+      o[k2] = m[k];
+    });
+    var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    } : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports && exports.__importStar || function(mod) {
+      if (mod && mod.__esModule)
+        return mod;
+      var result = {};
+      if (mod != null) {
+        for (var k in mod)
+          if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+            __createBinding(result, mod, k);
+      }
+      __setModuleDefault(result, mod);
+      return result;
     };
     var __importDefault = exports && exports.__importDefault || function(mod) {
       return mod && mod.__esModule ? mod : { "default": mod };
     };
     Object.defineProperty(exports, "__esModule", { value: true });
-    var net_1 = __importDefault(require("net"));
-    var tls_1 = __importDefault(require("tls"));
-    var url_1 = __importDefault(require("url"));
+    exports.HttpsProxyAgent = void 0;
+    var net = __importStar(require("net"));
+    var tls = __importStar(require("tls"));
     var assert_1 = __importDefault(require("assert"));
     var debug_1 = __importDefault(require_src());
-    var agent_base_1 = require_src2();
-    var parse_proxy_response_1 = __importDefault(require_parse_proxy_response());
-    var debug = debug_1.default("https-proxy-agent:agent");
+    var agent_base_1 = require_dist();
+    var parse_proxy_response_1 = require_parse_proxy_response();
+    var debug = (0, debug_1.default)("https-proxy-agent");
     var HttpsProxyAgent = class extends agent_base_1.Agent {
-      constructor(_opts) {
-        let opts;
-        if (typeof _opts === "string") {
-          opts = url_1.default.parse(_opts);
-        } else {
-          opts = _opts;
-        }
-        if (!opts) {
-          throw new Error("an HTTP(S) proxy server `host` and `port` must be specified!");
-        }
-        debug("creating new HttpsProxyAgent instance: %o", opts);
+      constructor(proxy, opts) {
         super(opts);
-        const proxy = Object.assign({}, opts);
-        this.secureProxy = opts.secureProxy || isHTTPS(proxy.protocol);
-        proxy.host = proxy.hostname || proxy.host;
-        if (typeof proxy.port === "string") {
-          proxy.port = parseInt(proxy.port, 10);
-        }
-        if (!proxy.port && proxy.host) {
-          proxy.port = this.secureProxy ? 443 : 80;
-        }
-        if (this.secureProxy && !("ALPNProtocols" in proxy)) {
-          proxy.ALPNProtocols = ["http 1.1"];
-        }
-        if (proxy.host && proxy.path) {
-          delete proxy.path;
-          delete proxy.pathname;
-        }
-        this.proxy = proxy;
+        this.options = { path: void 0 };
+        this.proxy = typeof proxy === "string" ? new URL(proxy) : proxy;
+        this.proxyHeaders = opts?.headers ?? {};
+        debug("Creating new HttpsProxyAgent instance: %o", this.proxy.href);
+        const host = (this.proxy.hostname || this.proxy.host).replace(/^\[|\]$/g, "");
+        const port = this.proxy.port ? parseInt(this.proxy.port, 10) : this.proxy.protocol === "https:" ? 443 : 80;
+        this.connectOpts = {
+          // Attempt to negotiate http/1.1 for proxy servers that support http/2
+          ALPNProtocols: ["http/1.1"],
+          ...opts ? omit(opts, "headers") : null,
+          host,
+          port
+        };
       }
       /**
        * Called when the node-core HTTP client library is creating a
        * new HTTP request.
-       *
-       * @api protected
        */
-      callback(req, opts) {
-        return __awaiter(this, void 0, void 0, function* () {
-          const { proxy, secureProxy } = this;
-          let socket;
-          if (secureProxy) {
-            debug("Creating `tls.Socket`: %o", proxy);
-            socket = tls_1.default.connect(proxy);
-          } else {
-            debug("Creating `net.Socket`: %o", proxy);
-            socket = net_1.default.connect(proxy);
-          }
-          const headers = Object.assign({}, proxy.headers);
-          const hostname = `${opts.host}:${opts.port}`;
-          let payload = `CONNECT ${hostname} HTTP/1.1\r
-`;
-          if (proxy.auth) {
-            headers["Proxy-Authorization"] = `Basic ${Buffer.from(proxy.auth).toString("base64")}`;
-          }
-          let { host, port, secureEndpoint } = opts;
-          if (!isDefaultPort(port, secureEndpoint)) {
-            host += `:${port}`;
-          }
-          headers.Host = host;
-          headers.Connection = "close";
-          for (const name of Object.keys(headers)) {
-            payload += `${name}: ${headers[name]}\r
-`;
-          }
-          const proxyResponsePromise = parse_proxy_response_1.default(socket);
-          socket.write(`${payload}\r
-`);
-          const { statusCode, buffered } = yield proxyResponsePromise;
-          if (statusCode === 200) {
-            req.once("socket", resume);
-            if (opts.secureEndpoint) {
-              debug("Upgrading socket connection to TLS");
-              const servername = opts.servername || opts.host;
-              return tls_1.default.connect(Object.assign(Object.assign({}, omit(opts, "host", "hostname", "path", "port")), {
-                socket,
-                servername
-              }));
-            }
-            return socket;
-          }
-          socket.destroy();
-          const fakeSocket = new net_1.default.Socket({ writable: false });
-          fakeSocket.readable = true;
-          req.once("socket", (s) => {
-            debug("replaying proxy buffer for failed request");
-            assert_1.default(s.listenerCount("data") > 0);
-            s.push(buffered);
-            s.push(null);
+      async connect(req, opts) {
+        const { proxy } = this;
+        if (!opts.host) {
+          throw new TypeError('No "host" provided');
+        }
+        let socket;
+        if (proxy.protocol === "https:") {
+          debug("Creating `tls.Socket`: %o", this.connectOpts);
+          const servername = this.connectOpts.servername || this.connectOpts.host;
+          socket = tls.connect({
+            ...this.connectOpts,
+            servername: servername && net.isIP(servername) ? void 0 : servername
           });
-          return fakeSocket;
+        } else {
+          debug("Creating `net.Socket`: %o", this.connectOpts);
+          socket = net.connect(this.connectOpts);
+        }
+        const headers = typeof this.proxyHeaders === "function" ? this.proxyHeaders() : { ...this.proxyHeaders };
+        const host = net.isIPv6(opts.host) ? `[${opts.host}]` : opts.host;
+        let payload = `CONNECT ${host}:${opts.port} HTTP/1.1\r
+`;
+        if (proxy.username || proxy.password) {
+          const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
+          headers["Proxy-Authorization"] = `Basic ${Buffer.from(auth).toString("base64")}`;
+        }
+        headers.Host = `${host}:${opts.port}`;
+        if (!headers["Proxy-Connection"]) {
+          headers["Proxy-Connection"] = this.keepAlive ? "Keep-Alive" : "close";
+        }
+        for (const name of Object.keys(headers)) {
+          payload += `${name}: ${headers[name]}\r
+`;
+        }
+        const proxyResponsePromise = (0, parse_proxy_response_1.parseProxyResponse)(socket);
+        socket.write(`${payload}\r
+`);
+        const { connect, buffered } = await proxyResponsePromise;
+        req.emit("proxyConnect", connect);
+        this.emit("proxyConnect", connect, req);
+        if (connect.statusCode === 200) {
+          req.once("socket", resume);
+          if (opts.secureEndpoint) {
+            debug("Upgrading socket connection to TLS");
+            const servername = opts.servername || opts.host;
+            return tls.connect({
+              ...omit(opts, "host", "path", "port"),
+              socket,
+              servername: net.isIP(servername) ? void 0 : servername
+            });
+          }
+          return socket;
+        }
+        socket.destroy();
+        const fakeSocket = new net.Socket({ writable: false });
+        fakeSocket.readable = true;
+        req.once("socket", (s) => {
+          debug("Replaying proxy buffer for failed request");
+          (0, assert_1.default)(s.listenerCount("data") > 0);
+          s.push(buffered);
+          s.push(null);
         });
+        return fakeSocket;
       }
     };
-    exports.default = HttpsProxyAgent;
+    HttpsProxyAgent.protocols = ["http", "https"];
+    exports.HttpsProxyAgent = HttpsProxyAgent;
     function resume(socket) {
       socket.resume();
-    }
-    function isDefaultPort(port, secure) {
-      return Boolean(!secure && port === 80 || secure && port === 443);
-    }
-    function isHTTPS(protocol) {
-      return typeof protocol === "string" ? /^https:?$/i.test(protocol) : false;
     }
     function omit(obj, ...keys) {
       const ret = {};
@@ -17750,28 +17834,9 @@ var require_agent = __commonJS({
   }
 });
 
-// node_modules/gcp-metadata/node_modules/https-proxy-agent/dist/index.js
-var require_dist = __commonJS({
-  "node_modules/gcp-metadata/node_modules/https-proxy-agent/dist/index.js"(exports, module2) {
-    "use strict";
-    var __importDefault = exports && exports.__importDefault || function(mod) {
-      return mod && mod.__esModule ? mod : { "default": mod };
-    };
-    var agent_1 = __importDefault(require_agent());
-    function createHttpsProxyAgent(opts) {
-      return new agent_1.default(opts);
-    }
-    (function(createHttpsProxyAgent2) {
-      createHttpsProxyAgent2.HttpsProxyAgent = agent_1.default;
-      createHttpsProxyAgent2.prototype = agent_1.default.prototype;
-    })(createHttpsProxyAgent || (createHttpsProxyAgent = {}));
-    module2.exports = createHttpsProxyAgent;
-  }
-});
-
-// node_modules/gcp-metadata/node_modules/gaxios/build/src/gaxios.js
+// node_modules/gaxios/build/src/gaxios.js
 var require_gaxios = __commonJS({
-  "node_modules/gcp-metadata/node_modules/gaxios/build/src/gaxios.js"(exports) {
+  "node_modules/gaxios/build/src/gaxios.js"(exports) {
     "use strict";
     var __importDefault = exports && exports.__importDefault || function(mod) {
       return mod && mod.__esModule ? mod : { "default": mod };
@@ -17786,6 +17851,7 @@ var require_gaxios = __commonJS({
     var url_1 = require("url");
     var common_1 = require_common3();
     var retry_1 = require_retry();
+    var https_proxy_agent_1 = require_dist2();
     var fetch = hasFetch() ? window.fetch : node_fetch_1.default;
     function hasWindow() {
       return typeof window !== "undefined" && !!window;
@@ -17813,7 +17879,7 @@ var require_gaxios = __commonJS({
       var _a, _b, _c, _d;
       const proxy = ((_a = process === null || process === void 0 ? void 0 : process.env) === null || _a === void 0 ? void 0 : _a.HTTPS_PROXY) || ((_b = process === null || process === void 0 ? void 0 : process.env) === null || _b === void 0 ? void 0 : _b.https_proxy) || ((_c = process === null || process === void 0 ? void 0 : process.env) === null || _c === void 0 ? void 0 : _c.HTTP_PROXY) || ((_d = process === null || process === void 0 ? void 0 : process.env) === null || _d === void 0 ? void 0 : _d.http_proxy);
       if (proxy) {
-        HttpsProxyAgent = require_dist();
+        HttpsProxyAgent = https_proxy_agent_1.HttpsProxyAgent;
       }
       return proxy;
     }
@@ -17881,10 +17947,10 @@ var require_gaxios = __commonJS({
             if (opts.responseType === "stream") {
               let response = "";
               await new Promise((resolve) => {
-                translatedResponse.data.on("data", (chunk) => {
+                (translatedResponse === null || translatedResponse === void 0 ? void 0 : translatedResponse.data).on("data", (chunk) => {
                   response += chunk;
                 });
-                translatedResponse.data.on("end", resolve);
+                (translatedResponse === null || translatedResponse === void 0 ? void 0 : translatedResponse.data).on("end", resolve);
               });
               translatedResponse.data = response;
             }
@@ -17892,8 +17958,7 @@ var require_gaxios = __commonJS({
           }
           return translatedResponse;
         } catch (e) {
-          const err = e;
-          err.config = opts;
+          const err = e instanceof common_1.GaxiosError ? e : new common_1.GaxiosError(e.message, opts, void 0, e);
           const { shouldRetry, config } = await (0, retry_1.getRetryConfig)(err);
           if (shouldRetry && config) {
             err.config.retryConfig.currentRetryAttempt = config.retryConfig.currentRetryAttempt;
@@ -17918,8 +17983,10 @@ var require_gaxios = __commonJS({
             return res.arrayBuffer();
           case "blob":
             return res.blob();
-          default:
+          case "text":
             return res.text();
+          default:
+            return this.getResponseDataFromContentType(res);
         }
       }
       /**
@@ -17976,7 +18043,7 @@ var require_gaxios = __commonJS({
           }
         }
         opts.validateStatus = opts.validateStatus || this.validateStatus;
-        opts.responseType = opts.responseType || "json";
+        opts.responseType = opts.responseType || "unknown";
         if (!opts.headers["Accept"] && opts.responseType === "json") {
           opts.headers["Accept"] = "application/json";
         }
@@ -18011,6 +18078,9 @@ var require_gaxios = __commonJS({
             this.agentCache.set(opts.key, opts.agent);
           }
         }
+        if (typeof opts.errorRedactor !== "function" && opts.errorRedactor !== false) {
+          opts.errorRedactor = common_1.defaultErrorRedactor;
+        }
         return opts;
       }
       /**
@@ -18044,14 +18114,38 @@ var require_gaxios = __commonJS({
           }
         };
       }
+      /**
+       * Attempts to parse a response by looking at the Content-Type header.
+       * @param {FetchResponse} response the HTTP response.
+       * @returns {Promise<any>} a promise that resolves to the response data.
+       */
+      async getResponseDataFromContentType(response) {
+        let contentType = response.headers.get("Content-Type");
+        if (contentType === null) {
+          return response.text();
+        }
+        contentType = contentType.toLowerCase();
+        if (contentType.includes("application/json")) {
+          let data = await response.text();
+          try {
+            data = JSON.parse(data);
+          } catch (_a) {
+          }
+          return data;
+        } else if (contentType.includes("text/plain") || contentType.includes("text/html")) {
+          return response.text();
+        } else {
+          return response.blob();
+        }
+      }
     };
     exports.Gaxios = Gaxios;
   }
 });
 
-// node_modules/gcp-metadata/node_modules/gaxios/build/src/index.js
-var require_src3 = __commonJS({
-  "node_modules/gcp-metadata/node_modules/gaxios/build/src/index.js"(exports) {
+// node_modules/gaxios/build/src/index.js
+var require_src2 = __commonJS({
+  "node_modules/gaxios/build/src/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.request = exports.instance = exports.Gaxios = exports.GaxiosError = void 0;
@@ -20018,7 +20112,7 @@ var require_gcp_residency = __commonJS({
 });
 
 // node_modules/gcp-metadata/build/src/index.js
-var require_src4 = __commonJS({
+var require_src3 = __commonJS({
   "node_modules/gcp-metadata/build/src/index.js"(exports) {
     "use strict";
     var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
@@ -20042,8 +20136,8 @@ var require_src4 = __commonJS({
           __createBinding(exports2, m, p);
     };
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.requestTimeout = exports.setGCPResidency = exports.getGCPResidency = exports.gcpResidencyCache = exports.resetIsAvailableCache = exports.isAvailable = exports.project = exports.instance = exports.METADATA_SERVER_DETECTION = exports.HEADERS = exports.HEADER_VALUE = exports.HEADER_NAME = exports.SECONDARY_HOST_ADDRESS = exports.HOST_ADDRESS = exports.BASE_PATH = void 0;
-    var gaxios_1 = require_src3();
+    exports.requestTimeout = exports.setGCPResidency = exports.getGCPResidency = exports.gcpResidencyCache = exports.resetIsAvailableCache = exports.isAvailable = exports.bulk = exports.universe = exports.project = exports.instance = exports.METADATA_SERVER_DETECTION = exports.HEADERS = exports.HEADER_VALUE = exports.HEADER_NAME = exports.SECONDARY_HOST_ADDRESS = exports.HOST_ADDRESS = exports.BASE_PATH = void 0;
+    var gaxios_1 = require_src2();
     var jsonBigint = require_json_bigint();
     var gcp_residency_1 = require_gcp_residency();
     exports.BASE_PATH = "/computeMetadata/v1";
@@ -20081,23 +20175,37 @@ var require_src4 = __commonJS({
         }
       });
     }
-    async function metadataAccessor(type, options, noResponseRetries = 3, fastFail = false) {
-      options = options || {};
+    async function metadataAccessor(type, options = {}, noResponseRetries = 3, fastFail = false) {
+      let metadataKey = "";
+      let params = {};
+      let headers = {};
+      if (typeof type === "object") {
+        const metadataAccessor2 = type;
+        metadataKey = metadataAccessor2.metadataKey;
+        params = metadataAccessor2.params || params;
+        headers = metadataAccessor2.headers || headers;
+        noResponseRetries = metadataAccessor2.noResponseRetries || noResponseRetries;
+        fastFail = metadataAccessor2.fastFail || fastFail;
+      } else {
+        metadataKey = type;
+      }
       if (typeof options === "string") {
-        options = { property: options };
+        metadataKey += `/${options}`;
+      } else {
+        validate(options);
+        if (options.property) {
+          metadataKey += `/${options.property}`;
+        }
+        headers = options.headers || headers;
+        params = options.params || params;
       }
-      let property = "";
-      if (typeof options === "object" && options.property) {
-        property = "/" + options.property;
-      }
-      validate(options);
       try {
         const requestMethod = fastFail ? fastFailMetadataRequest : gaxios_1.request;
         const res = await requestMethod({
-          url: `${getBaseUrl()}/${type}${property}`,
-          headers: Object.assign({}, exports.HEADERS, options.headers),
+          url: `${getBaseUrl()}/${metadataKey}`,
+          headers: { ...exports.HEADERS, ...headers },
           retryConfig: { noResponseRetries },
-          params: options.params,
+          params,
           responseType: "text",
           timeout: requestTimeout()
         });
@@ -20159,6 +20267,22 @@ var require_src4 = __commonJS({
       return metadataAccessor("project", options);
     }
     exports.project = project;
+    function universe(options) {
+      return metadataAccessor("universe", options);
+    }
+    exports.universe = universe;
+    async function bulk(properties) {
+      const r = {};
+      await Promise.all(properties.map((item) => {
+        return (async () => {
+          const res = await metadataAccessor(item);
+          const key = item.metadataKey;
+          r[key] = res;
+        })();
+      }));
+      return r;
+    }
+    exports.bulk = bulk;
     function detectGCPAvailableRetries() {
       return process.env.DETECT_GCP_RETRIES ? Number(process.env.DETECT_GCP_RETRIES) : 0;
     }
@@ -20300,7 +20424,7 @@ var require_deps = __commonJS({
     exports.getAwsCredentialProvider = getAwsCredentialProvider;
     function getGcpMetadata() {
       try {
-        const credentialProvider = require_src4();
+        const credentialProvider = require_src3();
         return credentialProvider;
       } catch {
         return makeErrorModule(new error_1.MongoMissingDependencyError("Optional module `gcp-metadata` not found. Please install it to enable getting gcp credentials via the official sdk."));
@@ -28054,7 +28178,7 @@ var require_memory_code_points = __commonJS({
 });
 
 // node_modules/@mongodb-js/saslprep/dist/index.js
-var require_dist2 = __commonJS({
+var require_dist3 = __commonJS({
   "node_modules/@mongodb-js/saslprep/dist/index.js"(exports, module2) {
     "use strict";
     var memory_code_points_1 = require_memory_code_points();
@@ -28124,7 +28248,7 @@ var require_scram = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ScramSHA256 = exports.ScramSHA1 = void 0;
-    var saslprep_1 = require_dist2();
+    var saslprep_1 = require_dist3();
     var crypto2 = require("crypto");
     var util_1 = require("util");
     var bson_1 = require_bson2();
@@ -35341,5 +35465,834 @@ var require_lib5 = __commonJS({
 
 // src/nodeEntry.ts
 var nodeEntry_exports = {};
-module.exports = __toCommonJS(nodeEntry_exports);
-__reExport(nodeEntry_exports, __toESM(require_lib5(), 1), module.exports);
+var init_nodeEntry = __esm({
+  "src/nodeEntry.ts"() {
+    "use strict";
+    __reExport(nodeEntry_exports, __toESM(require_lib5(), 1));
+  }
+});
+
+// src/index.ts
+var src_exports = {};
+__export(src_exports, {
+  default: () => src_default
+});
+module.exports = __toCommonJS(src_exports);
+
+// src/nodes/MongoDBStore.ts
+function MongoDBStore_default(rivet) {
+  const nodeImpl = {
+    create() {
+      const node = {
+        id: rivet.newId(),
+        data: {
+          database: "",
+          collection: "",
+          path: ""
+        },
+        title: "Store Vector in MongoDB",
+        type: "mongoDBStore",
+        visualData: {
+          x: 0,
+          y: 0,
+          width: 200
+        }
+      };
+      return node;
+    },
+    getInputDefinitions(data, _connections, _nodes, _project) {
+      const inputs = [];
+      inputs.push({
+        id: "vector",
+        title: "Vector",
+        dataType: "vector",
+        required: true
+      });
+      inputs.push({
+        id: "doc",
+        title: "Document Data",
+        dataType: "any",
+        required: false
+      });
+      if (data.useDatabaseInput) {
+        inputs.push({
+          id: "database",
+          title: "Database",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useCollectionInput) {
+        inputs.push({
+          id: "collection",
+          title: "Collection",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.usePathInput) {
+        inputs.push({
+          id: "path",
+          title: "Path",
+          dataType: "string",
+          required: true
+        });
+      }
+      return inputs;
+    },
+    getOutputDefinitions(_data, _connections, _nodes, _project) {
+      const outputs = [
+        {
+          id: "complete",
+          title: "Complete",
+          dataType: "boolean"
+        }
+      ];
+      return outputs;
+    },
+    getUIData() {
+      return {
+        contextMenuTitle: "MongoDB Vector Store",
+        group: "MongoDB",
+        infoBoxBody: "This is a node that stores a vector in MongoDB.",
+        infoBoxTitle: "MongoDB Vector Store"
+      };
+    },
+    getEditors(_data) {
+      return [
+        {
+          type: "string",
+          label: "Database",
+          dataKey: "database",
+          useInputToggleDataKey: "useDatabaseInput"
+        },
+        {
+          type: "string",
+          label: "Collection",
+          dataKey: "collection",
+          useInputToggleDataKey: "useCollectionInput"
+        },
+        {
+          type: "string",
+          label: "Path",
+          dataKey: "path",
+          useInputToggleDataKey: "usePathInput"
+        }
+      ];
+    },
+    getBody(data) {
+      return rivet.dedent`
+      ${data.useDatabaseInput ? "(Database using input)" : "Database: " + data.database}
+      ${data.useCollectionInput ? "(Collection using input)" : "Collection: " + data.collection}
+      ${data.usePathInput ? "(Path using input)" : "Path: " + data.path}
+      `;
+    },
+    async process(data, inputData, context) {
+      const { MongoClient, ServerApiVersion } = await Promise.resolve().then(() => (init_nodeEntry(), nodeEntry_exports));
+      const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
+      if (!uri) {
+        throw new Error("No MongoDB connection string provided");
+      }
+      if (inputData["vector"]?.type !== "vector") {
+        throw new Error(`Expected vector input, got ${inputData["vector"]?.type}`);
+      }
+      if (data.usePathInput && inputData["path"]?.type !== "string") {
+        throw new Error(`Expected string input, got ${inputData["path"]?.type}`);
+      }
+      const client = new MongoClient(uri);
+      try {
+        await client.connect();
+        const doc = inputData["doc"]?.value || {};
+        const path = inputData["path"]?.value || data.path;
+        const database = data.useDatabaseInput ? inputData["database"]?.value : data.database;
+        const collection = data.useCollectionInput ? inputData["collection"]?.value : data.collection;
+        console.log(`Inserting document into ${database}.${collection} at path ${path}`);
+        console.log(doc);
+        console.log(inputData["vector"]?.value);
+        await client.db(database).collection(collection).updateOne(
+          { ...doc },
+          { $set: { [path]: inputData["vector"]?.value } },
+          { upsert: true }
+        );
+      } catch (err) {
+        throw new Error(`Error inserting document: ${err}`);
+      } finally {
+        await client.close();
+      }
+      return {
+        ["complete"]: {
+          type: "boolean",
+          value: true
+        }
+      };
+    }
+  };
+  const nodeDefinition = rivet.pluginNodeDefinition(
+    nodeImpl,
+    "Store Vector in MongoDB"
+  );
+  return nodeDefinition;
+}
+
+// src/nodes/MongoDBVectorKNN.ts
+function MongoDBVectorKNN_default(rivet) {
+  const nodeImpl = {
+    create() {
+      const node = {
+        id: rivet.newId(),
+        data: {
+          k: 10,
+          database: "",
+          collection: "",
+          path: ""
+        },
+        title: "(Deprecated) Search MongoDB for closest vectors with KNN",
+        type: "mongoDBVectorKNN",
+        visualData: {
+          x: 0,
+          y: 0,
+          width: 200
+        }
+      };
+      return node;
+    },
+    getInputDefinitions(data, _connections, _nodes, _project) {
+      const inputs = [];
+      inputs.push({
+        id: "vector",
+        title: "Vector",
+        dataType: "vector",
+        required: true
+      });
+      if (data.useDatabaseInput) {
+        inputs.push({
+          id: "database",
+          title: "Database",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useCollectionInput) {
+        inputs.push({
+          id: "collection",
+          title: "Collection",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useKInput) {
+        inputs.push({
+          id: "k",
+          title: "K",
+          dataType: "number",
+          required: true
+        });
+      }
+      if (data.usePathInput) {
+        inputs.push({
+          id: "path",
+          title: "Path",
+          dataType: "string",
+          required: true
+        });
+      }
+      return inputs;
+    },
+    getOutputDefinitions(_data, _connections, _nodes, _project) {
+      const outputs = [
+        {
+          dataType: "object",
+          id: "documents",
+          title: "Documents"
+        }
+      ];
+      return outputs;
+    },
+    getUIData() {
+      return {
+        contextMenuTitle: "(Deprecated) MongoDB Vector KNN",
+        group: "MongoDB",
+        infoBoxBody: "This a node that takes a mongo db vector searches for similar vectors with KNN.",
+        infoBoxTitle: "(Deprecated) Run Mongo DB vector search with KNN"
+      };
+    },
+    getEditors(_data) {
+      return [
+        {
+          type: "string",
+          label: "Database",
+          dataKey: "database",
+          useInputToggleDataKey: "useDatabaseInput"
+        },
+        {
+          type: "string",
+          label: "Collection",
+          dataKey: "collection",
+          useInputToggleDataKey: "useCollectionInput"
+        },
+        {
+          type: "number",
+          label: "K",
+          dataKey: "k",
+          useInputToggleDataKey: "useKInput"
+        },
+        {
+          type: "string",
+          label: "path",
+          dataKey: "path",
+          useInputToggleDataKey: "usePathInput"
+        }
+      ];
+    },
+    getBody(data) {
+      return rivet.dedent`
+      This node type has been deprecated. Please use the MongoDB Vector Search node instead.
+      Check the documentation on github for migration instructions.
+      
+      ${data.useDatabaseInput ? "(Database using input)" : "Database: " + data.database}
+      ${data.useCollectionInput ? "(Collection using input)" : "Collection: " + data.collection}
+      ${data.useKInput ? "(K using input)" : "K: " + data.k}
+      ${data.usePathInput ? "(Path using input)" : "Path: " + data.path}
+      `;
+    },
+    async process(data, inputData, context) {
+      const { MongoClient } = await Promise.resolve().then(() => (init_nodeEntry(), nodeEntry_exports));
+      const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
+      if (!uri) {
+        throw new Error("No MongoDB connection string provided");
+      }
+      if (inputData["vector"]?.type !== "vector") {
+        throw new Error(`Expected vector input, got ${inputData["vector"]?.type}`);
+      }
+      const client = new MongoClient(uri);
+      let results;
+      try {
+        await client.connect();
+        const database = data.useDatabaseInput ? inputData["database"]?.value : data.database;
+        const collection = data.useCollectionInput ? inputData["collection"]?.value : data.collection;
+        const path = data.usePathInput ? inputData["path"]?.value : data.path;
+        results = await client.db(database).collection(collection).aggregate(
+          [{
+            "$search": {
+              "knnBeta": {
+                "vector": inputData["vector"]?.value,
+                "k": data.useKInput ? inputData["k"]?.value : data.k,
+                "path": path
+              }
+            }
+          }]
+        ).toArray();
+      } catch (err) {
+        throw new Error(`Error vector searching document: ${err}`);
+      } finally {
+        await client.close();
+      }
+      return {
+        ["documents"]: {
+          type: "object",
+          value: results
+        }
+      };
+    }
+  };
+  const nodeDefinition = rivet.pluginNodeDefinition(
+    nodeImpl,
+    "Run Mongo DB vector search with KNN"
+  );
+  return nodeDefinition;
+}
+
+// src/nodes/MongoDBCollectionSearch.ts
+function MongoDBCollectionSearch_default(rivet) {
+  const nodeImpl = {
+    create() {
+      const node = {
+        id: rivet.newId(),
+        data: {
+          database: "",
+          collection: ""
+        },
+        title: "Search a MongoDB collection and return documents",
+        type: "mongoDBCollectionSearch",
+        visualData: {
+          x: 0,
+          y: 0,
+          width: 200
+        }
+      };
+      return node;
+    },
+    getInputDefinitions(data, _connections, _nodes, _project) {
+      const inputs = [];
+      if (data.useDatabaseInput) {
+        inputs.push({
+          id: "database",
+          title: "Database",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useCollectionInput) {
+        inputs.push({
+          id: "collection",
+          title: "Collection",
+          dataType: "string",
+          required: true
+        });
+      }
+      return inputs;
+    },
+    getOutputDefinitions(_data, _connections, _nodes, _project) {
+      const outputs = [
+        {
+          dataType: "object",
+          id: "documents",
+          title: "Documents"
+        }
+      ];
+      return outputs;
+    },
+    getUIData() {
+      return {
+        contextMenuTitle: "MongoDB Collection Search",
+        group: "MongoDB",
+        infoBoxBody: "This is a node that searches a MongoDB collection and returns documents.",
+        infoBoxTitle: "Search a MongoDB collection and return documents"
+      };
+    },
+    getEditors(_data) {
+      return [
+        {
+          type: "string",
+          label: "Database",
+          dataKey: "database",
+          useInputToggleDataKey: "useDatabaseInput"
+        },
+        {
+          type: "string",
+          label: "Collection",
+          dataKey: "collection",
+          useInputToggleDataKey: "useCollectionInput"
+        }
+      ];
+    },
+    getBody(data) {
+      return rivet.dedent`
+      ${data.useDatabaseInput ? "(Database using input)" : "Database: " + data.database}
+      ${data.useCollectionInput ? "(Collection using input)" : "Collection: " + data.collection}
+      `;
+    },
+    async process(data, inputData, context) {
+      const { MongoClient } = await Promise.resolve().then(() => (init_nodeEntry(), nodeEntry_exports));
+      const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
+      if (!uri) {
+        throw new Error("No MongoDB connection string provided");
+      }
+      const client = new MongoClient(uri);
+      let results;
+      try {
+        await client.connect();
+        const database = data.useDatabaseInput ? inputData["database"]?.value : data.database;
+        const collection = data.useCollectionInput ? inputData["collection"]?.value : data.collection;
+        results = await client.db(database).collection(collection).find().toArray();
+      } catch (err) {
+        throw new Error(`Error vector searching document: ${err}`);
+      } finally {
+        await client.close();
+      }
+      return {
+        ["documents"]: {
+          type: "object",
+          value: results
+        }
+      };
+    }
+  };
+  const nodeDefinition = rivet.pluginNodeDefinition(
+    nodeImpl,
+    "Search a MongoDB collection and return documents"
+  );
+  return nodeDefinition;
+}
+
+// src/nodes/MongoDBAggregation.ts
+function MongoDBAggregation_default(rivet) {
+  const nodeImpl = {
+    create() {
+      const node = {
+        id: rivet.newId(),
+        data: {
+          database: "",
+          collection: "",
+          aggregation: ""
+        },
+        title: "Perform a MongoDB aggregation operation on a collection",
+        type: "mongoDBAggregation",
+        visualData: {
+          x: 0,
+          y: 0,
+          width: 200
+        }
+      };
+      return node;
+    },
+    getInputDefinitions(data, _connections, _nodes, _project) {
+      const inputs = [];
+      if (data.useDatabaseInput) {
+        inputs.push({
+          id: "database",
+          title: "Database",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useCollectionInput) {
+        inputs.push({
+          id: "collection",
+          title: "Collection",
+          dataType: "string",
+          required: true
+        });
+      }
+      inputs.push({
+        id: "aggregation",
+        title: "Aggregation",
+        dataType: "string",
+        required: true
+      });
+      return inputs;
+    },
+    getOutputDefinitions(_data, _connections, _nodes, _project) {
+      const outputs = [
+        {
+          dataType: "object",
+          id: "documents",
+          title: "Documents"
+        }
+      ];
+      return outputs;
+    },
+    getUIData() {
+      return {
+        contextMenuTitle: "MongoDB Aggregation",
+        group: "MongoDB",
+        infoBoxBody: "This a node that takes a MongoDB Aggregation operation and returns results.",
+        infoBoxTitle: "Run a MongoDB aggregation operation on a collection and return results"
+      };
+    },
+    getEditors(_data) {
+      return [
+        {
+          type: "string",
+          label: "Database",
+          dataKey: "database",
+          useInputToggleDataKey: "useDatabaseInput"
+        },
+        {
+          type: "string",
+          label: "Collection",
+          dataKey: "collection",
+          useInputToggleDataKey: "useCollectionInput"
+        }
+      ];
+    },
+    getBody(data) {
+      return rivet.dedent`
+        ${data.useDatabaseInput ? "(Database using input)" : "Database: " + data.database}
+        ${data.useCollectionInput ? "(Collection using input)" : "Collection: " + data.collection}
+        `;
+    },
+    async process(data, inputData, context) {
+      const { MongoClient } = await Promise.resolve().then(() => (init_nodeEntry(), nodeEntry_exports));
+      const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
+      if (!uri) {
+        throw new Error("No MongoDB connection string provided");
+      }
+      const client = new MongoClient(uri);
+      let results;
+      try {
+        await client.connect();
+        const database = data.useDatabaseInput ? inputData["database"]?.value : data.database;
+        const collection = data.useCollectionInput ? inputData["collection"]?.value : data.collection;
+        const aggregation = inputData["aggregation"]?.value;
+        results = await client.db(database).collection(collection).aggregate(
+          aggregation
+        ).toArray();
+      } catch (err) {
+        throw new Error(`Error running aggregation: ${err}`);
+      } finally {
+        await client.close();
+      }
+      return {
+        ["documents"]: {
+          type: "object",
+          value: results
+        }
+      };
+    }
+  };
+  const nodeDefinition = rivet.pluginNodeDefinition(
+    nodeImpl,
+    "Run a MongoDB aggregation operation on a collection and return results"
+  );
+  return nodeDefinition;
+}
+
+// src/nodes/MongoDBVectorSearch.ts
+function MongoDBVectorSearch_default(rivet) {
+  const nodeImpl = {
+    create() {
+      const node = {
+        id: rivet.newId(),
+        data: {
+          database: "",
+          collection: "",
+          index: "",
+          path: "",
+          numCandidates: 10,
+          limit: 5,
+          filter: void 0
+        },
+        title: "Search MongoDB for closest vectors with vector search",
+        type: "mongoDBVectorSearch",
+        visualData: {
+          x: 0,
+          y: 0,
+          width: 200
+        }
+      };
+      return node;
+    },
+    getInputDefinitions(data, _connections, _nodes, _project) {
+      const inputs = [];
+      inputs.push({
+        id: "queryVector",
+        title: "Query Vector",
+        dataType: "vector",
+        required: true
+      });
+      inputs.push({
+        id: "filter",
+        title: "Filter",
+        dataType: "object",
+        required: false
+      });
+      if (data.useDatabaseInput) {
+        inputs.push({
+          id: "database",
+          title: "Database",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useCollectionInput) {
+        inputs.push({
+          id: "collection",
+          title: "Collection",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useIndexInput) {
+        inputs.push({
+          id: "index",
+          title: "Index",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.usePathInput) {
+        inputs.push({
+          id: "path",
+          title: "Path",
+          dataType: "string",
+          required: true
+        });
+      }
+      if (data.useNumCandidatesInput) {
+        inputs.push({
+          id: "numCandidates",
+          title: "Number of Candidates",
+          dataType: "number",
+          required: true
+        });
+      }
+      if (data.useLimitInput) {
+        inputs.push({
+          id: "limit",
+          title: "Limit",
+          dataType: "number",
+          required: true
+        });
+      }
+      return inputs;
+    },
+    getOutputDefinitions(_data, _connections, _nodes, _project) {
+      const outputs = [
+        {
+          dataType: "object",
+          id: "documents",
+          title: "Documents"
+        }
+      ];
+      return outputs;
+    },
+    getUIData() {
+      return {
+        contextMenuTitle: "MongoDB Vector Search",
+        group: "MongoDB",
+        infoBoxBody: "This a node that takes a mongo db vector searches for similar vectors with Search.",
+        infoBoxTitle: "Run Mongo DB vector search with Search"
+      };
+    },
+    getEditors(_data) {
+      return [
+        {
+          type: "string",
+          label: "Database",
+          dataKey: "database",
+          useInputToggleDataKey: "useDatabaseInput"
+        },
+        {
+          type: "string",
+          label: "Collection",
+          dataKey: "collection",
+          useInputToggleDataKey: "useCollectionInput"
+        },
+        {
+          type: "string",
+          label: "Index",
+          dataKey: "index",
+          useInputToggleDataKey: "useIndexInput"
+        },
+        {
+          type: "string",
+          label: "Path",
+          dataKey: "path",
+          useInputToggleDataKey: "usePathInput"
+        },
+        {
+          type: "number",
+          label: "Number of Candidates",
+          dataKey: "numCandidates",
+          useInputToggleDataKey: "useNumCandidatesInput"
+        },
+        {
+          type: "number",
+          label: "Limit",
+          dataKey: "limit",
+          useInputToggleDataKey: "useLimitInput"
+        }
+      ];
+    },
+    getBody(data) {
+      return rivet.dedent`
+        ${data.useDatabaseInput ? "(Database using input)" : "Database: " + data.database}
+        ${data.useCollectionInput ? "(Collection using input)" : "Collection: " + data.collection}
+        ${data.useIndexInput ? "(Index using input)" : "Index: " + data.index}
+        ${data.usePathInput ? "(Path using input)" : "Path: " + data.path}
+        ${data.useNumCandidatesInput ? "(Number of Candidates using input)" : "Number of Candidates: " + data.numCandidates}
+        ${data.useLimitInput ? "(limit using input)" : "Limit: " + data.limit}
+        `;
+    },
+    async process(data, inputData, context) {
+      const { MongoClient } = await Promise.resolve().then(() => (init_nodeEntry(), nodeEntry_exports));
+      const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
+      if (!uri) {
+        throw new Error("No MongoDB connection string provided");
+      }
+      if (inputData["queryVector"]?.type !== "vector") {
+        throw new Error(`Expected vector input, got ${inputData["queryVector"]?.type}`);
+      }
+      if (data.numCandidates > 1e4) {
+        throw new Error(`numCandidates must be between limit and 10000`);
+      }
+      if (data.numCandidates < data.limit) {
+        throw new Error("numCandidates must be greater than or equal to limit");
+      }
+      const client = new MongoClient(uri);
+      let results;
+      try {
+        await client.connect();
+        const database = data.useDatabaseInput ? inputData["database"]?.value : data.database;
+        const collection = data.useCollectionInput ? inputData["collection"]?.value : data.collection;
+        const index = data.useIndexInput ? inputData["index"]?.value : data.index;
+        const path = data.usePathInput ? inputData["path"]?.value : data.path;
+        const queryVector = inputData["queryVector"]?.value;
+        const numCandidates = data.useNumCandidatesInput ? inputData["numCandidates"]?.value : data.numCandidates;
+        const limit = data.useLimitInput ? inputData["limit"]?.value : data.limit;
+        const filter = inputData["filter"]?.value;
+        results = await client.db(database).collection(collection).aggregate(
+          [{
+            "$vectorSearch": {
+              "index": index,
+              "path": path,
+              "queryVector": queryVector,
+              "numCandidates": numCandidates,
+              "limit": limit,
+              "filter": filter
+            }
+          }]
+        ).toArray();
+      } catch (err) {
+        throw new Error(`Error vector searching document: ${err}`);
+      } finally {
+        await client.close();
+      }
+      return {
+        ["documents"]: {
+          type: "object",
+          value: results
+        }
+      };
+    }
+  };
+  const nodeDefinition = rivet.pluginNodeDefinition(
+    nodeImpl,
+    "Run Mongo DB vector search with Search"
+  );
+  return nodeDefinition;
+}
+
+// src/index.ts
+var initializer = (rivet) => {
+  const mongoDBStore = MongoDBStore_default(rivet);
+  const mongoDBVectorSearch = MongoDBVectorKNN_default(rivet);
+  const mongoDBCollectionSearch = MongoDBCollectionSearch_default(rivet);
+  const mongoDBAggregation = MongoDBAggregation_default(rivet);
+  const mongoDBVectorKNN = MongoDBVectorSearch_default(rivet);
+  const plugin = {
+    // The ID of your plugin should be unique across all plugins.
+    id: "rivetPluginMongodb",
+    // The name of the plugin is what is displayed in the Rivet UI.
+    name: "Rivet Plugin MongoDB",
+    // Define all configuration settings in the configSpec object.
+    configSpec: {
+      mongoDBConnectionString: {
+        type: "secret",
+        label: "Rivet MongoDB Connection String",
+        description: "The connection string for the MongoDB service.",
+        pullEnvironmentVariable: "RIVET_MONGODB_CONNECTION_STRING",
+        helperText: "You may also set the RIVET_MONGODB_CONNECTION_STRING environment variable."
+      }
+    },
+    // Define any additional context menu groups your plugin adds here.
+    contextMenuGroups: [
+      {
+        id: "mongoDB",
+        label: "MongoDB"
+      }
+    ],
+    // Register any additional nodes your plugin adds here. This is passed a `register`
+    // function, which you can use to register your nodes.
+    register: (register) => {
+      register(mongoDBStore);
+      register(mongoDBVectorSearch);
+      register(mongoDBCollectionSearch);
+      register(mongoDBAggregation);
+      register(mongoDBVectorKNN);
+    }
+  };
+  return plugin;
+};
+var src_default = initializer;

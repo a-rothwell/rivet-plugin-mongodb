@@ -107,7 +107,7 @@ function MongoDBStore_default(rivet) {
       `;
     },
     async process(data, inputData, context) {
-      const { MongoClient, ServerApiVersion } = await import("../dist/nodeEntry.cjs");
+      const { MongoClient, ServerApiVersion } = await import("../esm/nodeEntry.js");
       const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
       if (!uri) {
         throw new Error("No MongoDB connection string provided");
@@ -275,7 +275,7 @@ function MongoDBVectorKNN_default(rivet) {
       `;
     },
     async process(data, inputData, context) {
-      const { MongoClient } = await import("../dist/nodeEntry.cjs");
+      const { MongoClient } = await import("../esm/nodeEntry.js");
       const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
       if (!uri) {
         throw new Error("No MongoDB connection string provided");
@@ -402,7 +402,7 @@ function MongoDBCollectionSearch_default(rivet) {
       `;
     },
     async process(data, inputData, context) {
-      const { MongoClient } = await import("../dist/nodeEntry.cjs");
+      const { MongoClient } = await import("../esm/nodeEntry.js");
       const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
       if (!uri) {
         throw new Error("No MongoDB connection string provided");
@@ -522,7 +522,7 @@ function MongoDBAggregation_default(rivet) {
         `;
     },
     async process(data, inputData, context) {
-      const { MongoClient } = await import("../dist/nodeEntry.cjs");
+      const { MongoClient } = await import("../esm/nodeEntry.js");
       const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
       if (!uri) {
         throw new Error("No MongoDB connection string provided");
@@ -715,7 +715,7 @@ function MongoDBVectorSearch_default(rivet) {
         `;
     },
     async process(data, inputData, context) {
-      const { MongoClient } = await import("../dist/nodeEntry.cjs");
+      const { MongoClient } = await import("../esm/nodeEntry.js");
       const uri = context.settings.pluginSettings?.rivetPluginMongodb?.mongoDBConnectionString;
       if (!uri) {
         throw new Error("No MongoDB connection string provided");
@@ -733,7 +733,6 @@ function MongoDBVectorSearch_default(rivet) {
       let results;
       try {
         await client.connect();
-        console.log("Input Data", inputData);
         const database = data.useDatabaseInput ? inputData["database"]?.value : data.database;
         const collection = data.useCollectionInput ? inputData["collection"]?.value : data.collection;
         const index = data.useIndexInput ? inputData["index"]?.value : data.index;
@@ -742,7 +741,6 @@ function MongoDBVectorSearch_default(rivet) {
         const numCandidates = data.useNumCandidatesInput ? inputData["numCandidates"]?.value : data.numCandidates;
         const limit = data.useLimitInput ? inputData["limit"]?.value : data.limit;
         const filter = inputData["filter"]?.value;
-        console.log("filter", filter);
         results = await client.db(database).collection(collection).aggregate(
           [{
             "$vectorSearch": {

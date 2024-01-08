@@ -8,29 +8,29 @@ const rewriteNodeEntryPlugin: esbuild.Plugin = {
     build.onResolve({ filter: /\/nodeEntry$/ }, (args) => {
       return {
         external: true,
-        path: "../dist/nodeEntry.cjs",
+        path: "../esm/nodeEntry.js",
       };
     });
   },
 };
 
 const isomorphicBundleOptions: esbuild.BuildOptions = {
-  entryPoints: ["src/index.ts"],
+  entryPoints: ["src/index.ts", "src/nodeEntry.ts"],
   bundle: true,
   platform: "neutral",
   target: "es2020",
-  outfile: "dist/bundle.js",
+  outdir: "dist/esm",
   format: "esm",
-  external: ["./src/nodeEntry"],
+  external: ["mongodb", "./src/nodeEntry"],
   plugins: [rewriteNodeEntryPlugin],
 };
 
 const nodeBundleOptions: esbuild.BuildOptions = {
-  entryPoints: ["src/nodeEntry.ts"],
+  entryPoints: ["src/index.ts"],
   bundle: true,
   platform: "node",
   target: "es2020",
-  outfile: "dist/nodeEntry.cjs",
+  outfile: "dist/cjs/index.cjs",
   format: "cjs",
 };
 
