@@ -1,4 +1,23 @@
 {
   "projectName": "rivet-plugin-mongodb",
-  "projectOwner": "a-rothwell"
+  "projectOwner": "a-rothwell",
+  "files": [
+    "README.md"
+  ],
+  "commitType": "docs",
+  "commitConvention": "angular",
+  "contributorsPerLine": 7,
+  "contributors": [
+    {
+      "login": "a-rothwell",
+      "name": "Andrew Rothwell",
+      "avatar_url": "https://avatars.githubusercontent.com/u/12634659?v=4",
+      "profile": "https://github.com/a-rothwell",
+      "contributions": [
+        "code",
+        "ideas",
+        "bug"
+      ]
+    }
+  ]
 }
