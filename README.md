@@ -1,3 +1,4 @@
+[![All Contributors](https://img.shields.io/github/all-contributors/a-rothwell/rivet-plugin-mongodb?color=ee8449&style=flat-square)](#contributors)
 <h1 align="center"><img src="https://rivet.ironcladapp.com/img/logo-banner-wide.png" alt="Rivet Logo"></h1>
 
 # Rivet MongoDB Plugin
@@ -39,3 +40,27 @@ https://www.mongodb.com/developer/products/atlas/atlas-rivet-graph-ai-integ/
 # Changes from 0.0.2 to 0.0.3
 
 - MongoDBVectorKNN deprecated and replaced with MongoDBVectorSearch. See the installation section above for instructions on how to setup a new index for MongoDBVectorSearch.
+
+## Contributors
+
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/a-rothwell"><img src="https://avatars.githubusercontent.com/u/12634659?v=4?s=100" width="100px;" alt="Andrew Rothwell"/><br /><sub><b>Andrew Rothwell</b></sub></a><br /><a href="#code-a-rothwell" title="Code">💻</a> <a href="#ideas-a-rothwell" title="Ideas, Planning, & Feedback">🤔</a> <a href="#bug-a-rothwell" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/mloenow"><img src="https://avatars.githubusercontent.com/u/546929?v=4?s=100" width="100px;" alt="mloenow"/><br /><sub><b>mloenow</b></sub></a><br /><a href="#bug-mloenow" title="Bug reports">🐛</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind are welcome!
+
