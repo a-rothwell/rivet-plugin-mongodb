@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "type": "module",
   "main": "dist/bundle.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -b && tsx bundle.ts",
     "dev": "run-p watch serve",
@@ -28,5 +31,8 @@
   "repository": {
     "type": "git",
     "url": "git://github.com/a-rothwell/rivet-plugin-mongodb.git"
+  },
+  "rivet": {
+    "skipInstall": true
   }
 }
