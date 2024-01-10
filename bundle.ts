@@ -26,11 +26,11 @@ const isomorphicBundleOptions: esbuild.BuildOptions = {
 };
 
 const nodeBundleOptions: esbuild.BuildOptions = {
-  entryPoints: ["src/index.ts"],
+  entryPoints: ["src/index.ts", "src/nodeEntry.ts"],
   bundle: true,
   platform: "node",
   target: "es2020",
-  outfile: "dist/cjs/index.cjs",
+  outdir: "dist/cjs",
   format: "cjs",
 };
 
