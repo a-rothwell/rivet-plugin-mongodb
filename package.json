@@ -15,8 +15,8 @@
     "serve": "serve --config ../serve.json dist"
   },
   "dependencies": {
-    "@ironclad/rivet-core": "^1.14.0",
-    "mongodb": "^6.3.0"
+    "@ironclad/rivet-core": "^1.14.3",
+    "mongodb": "^6.4.0"
   },
   "devDependencies": {
     "esbuild": "^0.19.2",
